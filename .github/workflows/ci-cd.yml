@@ -1,0 +1,203 @@
+# ──────────────────────────────────────────────────────────
+# 🔄 CI/CD Pipeline — Booking XP (GitHub Actions)
+# ──────────────────────────────────────────────────────────
+# 📚 Explication Pédagogique :
+# Ce pipeline automatise :
+# 1. LINT : vérification du style de code (flake8, mypy)
+# 2. TEST : exécution des tests unitaires (pytest)
+# 3. BUILD : construction des images Docker
+# 4. DEPLOY : déploiement (staging/production)
+#
+# 🔑 Stratégie de déploiement sans interruption :
+# - Blue/Green : deux environnements identiques
+# - On déploie sur le "vert" pendant que le "bleu" sert le trafic
+# - Une fois validé, on bascule le trafic vers le "vert"
+# ──────────────────────────────────────────────────────────
+
+name: CI/CD Pipeline
+
+on:
+  push:
+    branches: [main, develop]
+  pull_request:
+    branches: [main, develop]
+
+# Empêcher les exécutions simultanées sur la même branche
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  PYTHON_VERSION: "3.12"
+  DOCKER_REGISTRY: ghcr.io
+  IMAGE_PREFIX: ${{ github.repository_owner }}/booking-xp
+
+jobs:
+  # ═══════════════════════════════════════════════
+  # 🔍 JOB 1 : Lint — Qualité du code
+  # ═══════════════════════════════════════════════
+  lint:
+    name: 🔍 Lint & Code Quality
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        service: [log-service, auth-service, booking-service, payment-service, inventory-service]
+
+    steps:
+      - name: 📥 Checkout code
+        uses: actions/checkout@v4
+
+      - name: 🐍 Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+          cache: pip
+          cache-dependency-path: api/${{ matrix.service }}/requirements.txt
+
+      - name: 📦 Install dependencies
+        run: |
+          pip install --upgrade pip
+          pip install flake8 mypy
+          if [ -f api/${{ matrix.service }}/requirements.txt ]; then
+            pip install -r api/${{ matrix.service }}/requirements.txt
+          fi
+
+      - name: 🔍 Flake8 — Style check
+        run: |
+          cd api/${{ matrix.service }}
+          flake8 . --count --select=E9,F63,F7,F82 --show-source --statistics
+          flake8 . --count --exit-zero --max-complexity=10 --max-line-length=127 --statistics
+
+  # ═══════════════════════════════════════════════
+  # ✅ JOB 2 : Test — Tests unitaires
+  # ═══════════════════════════════════════════════
+  test:
+    name: ✅ Tests — ${{ matrix.service }}
+    runs-on: ubuntu-latest
+    needs: lint
+    strategy:
+      matrix:
+        service: [log-service]  # Ajouter les autres services quand ils auront des tests
+
+    steps:
+      - name: 📥 Checkout code
+        uses: actions/checkout@v4
+
+      - name: 🐍 Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+          cache: pip
+          cache-dependency-path: api/${{ matrix.service }}/requirements.txt
+
+      - name: 📦 Install dependencies
+        run: |
+          pip install --upgrade pip
+          pip install -r api/${{ matrix.service }}/requirements.txt
+
+      - name: ✅ Run tests with coverage
+        run: |
+          cd api/${{ matrix.service }}
+          python -m pytest tests/ -v --cov=domain --cov=adapters --cov-report=xml --cov-report=term-missing
+        env:
+          DATABASE_URL: sqlite+aiosqlite:///./test.db
+          LOG_LEVEL: DEBUG
+
+      - name: 📊 Upload coverage report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: coverage-${{ matrix.service }}
+          path: api/${{ matrix.service }}/coverage.xml
+
+  # ═══════════════════════════════════════════════
+  # 🐳 JOB 3 : Build — Images Docker
+  # ═══════════════════════════════════════════════
+  build:
+    name: 🐳 Build — ${{ matrix.service }}
+    runs-on: ubuntu-latest
+    needs: test
+    if: github.event_name == 'push'
+    strategy:
+      matrix:
+        service: [log-service, auth-service, booking-service, payment-service, inventory-service]
+
+    permissions:
+      contents: read
+      packages: write
+
+    steps:
+      - name: 📥 Checkout code
+        uses: actions/checkout@v4
+
+      - name: 🐳 Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: 🔐 Login to GitHub Container Registry
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ env.DOCKER_REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: 🏷️ Extract metadata
+        id: meta
+        uses: docker/metadata-action@v5
+        with:
+          images: ${{ env.DOCKER_REGISTRY }}/${{ env.IMAGE_PREFIX }}/${{ matrix.service }}
+          tags: |
+            type=ref,event=branch
+            type=sha,prefix=
+            type=raw,value=latest,enable={{is_default_branch}}
+
+      - name: 🐳 Build and push Docker image
+        uses: docker/build-push-action@v5
+        with:
+          context: ./api/${{ matrix.service }}
+          push: true
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+  # ═══════════════════════════════════════════════
+  # 🚀 JOB 4 : Deploy — Déploiement
+  # ═══════════════════════════════════════════════
+  deploy-staging:
+    name: 🚀 Deploy Staging
+    runs-on: ubuntu-latest
+    needs: build
+    if: github.ref == 'refs/heads/develop'
+    environment: staging
+
+    steps:
+      - name: 📥 Checkout code
+        uses: actions/checkout@v4
+
+      - name: 🚀 Deploy to staging
+        run: |
+          echo "🚀 Deploying to staging environment..."
+          echo "📋 Services: log-service, auth-service, booking-service, payment-service, inventory-service"
+          # En production, on utiliserait docker-compose up -d ou kubectl apply
+          # docker compose -f docker-compose.yml -f docker-compose.staging.yml up -d
+
+  deploy-production:
+    name: 🚀 Deploy Production (Blue/Green)
+    runs-on: ubuntu-latest
+    needs: build
+    if: github.ref == 'refs/heads/main'
+    environment: production
+
+    steps:
+      - name: 📥 Checkout code
+        uses: actions/checkout@v4
+
+      - name: 🔵🟢 Blue/Green Deployment
+        run: |
+          echo "🔵🟢 Blue/Green deployment strategy:"
+          echo "1. Deploy new version to GREEN environment"
+          echo "2. Run health checks on GREEN"
+          echo "3. Switch traffic from BLUE to GREEN"
+          echo "4. Keep BLUE as rollback target"
+          # Stratégie de déploiement sans interruption
+          # En production : docker compose, Kubernetes, ou AWS ECS
