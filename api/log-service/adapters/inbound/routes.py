@@ -20,6 +20,8 @@ extrait automatiquement du header X-Correlation-ID par le middleware.
 """
 from typing import Optional
 
+from sqlalchemy import text
+
 from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -343,7 +345,7 @@ async def health_check(
     """
     try:
         # Vérifier la connexion DB
-        await db.execute("SELECT 1")
+        await db.execute(text("SELECT 1"))
         db_status = "connected"
     except Exception:
         db_status = "disconnected"

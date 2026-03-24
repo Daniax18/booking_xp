@@ -37,16 +37,16 @@ async def lifespan(app: FastAPI):
     """
     # ── Démarrage ──
     setup_logging()
-    await logger.ainfo("🚀 Log Service démarré", port=settings.SERVICE_PORT)
+    logger.info("🚀 Log Service démarré", port=settings.SERVICE_PORT)
     await init_db()
-    await logger.ainfo("✅ Base de données initialisée")
+    logger.info("✅ Base de données initialisée")
 
     yield
 
     # ── Arrêt ──
-    await logger.ainfo("🛑 Log Service en arrêt...")
+    logger.info("🛑 Log Service en arrêt...")
     await close_db()
-    await logger.ainfo("✅ Connexions fermées proprement")
+    logger.info("✅ Connexions fermées proprement")
 
 
 # ── Création de l'application FastAPI ──

@@ -86,7 +86,7 @@ class LogService(SystemLogInputPort, AuditLogInputPort):
 
         # 2. Règle métier : alerter si log critique
         if log.is_critical():
-            await logger.awarning(
+            logger.warning(
                 "🚨 Log critique détecté",
                 service=service_name,
                 level=level.value,
@@ -97,7 +97,7 @@ class LogService(SystemLogInputPort, AuditLogInputPort):
         # 3. Persister
         saved_log = await self._system_log_repo.save(log)
 
-        await logger.ainfo(
+        logger.info(
             "Log système créé",
             log_id=saved_log.id,
             service=service_name,
@@ -166,7 +166,7 @@ class LogService(SystemLogInputPort, AuditLogInputPort):
         )
 
         if log.is_security_relevant():
-            await logger.awarning(
+            logger.warning(
                 "🔐 Action de sécurité détectée",
                 user_id=user_id,
                 action=action,
@@ -176,7 +176,7 @@ class LogService(SystemLogInputPort, AuditLogInputPort):
 
         saved_log = await self._audit_log_repo.save(log)
 
-        await logger.ainfo(
+        logger.info(
             "Log d'audit créé",
             log_id=saved_log.id,
             user_id=user_id,
