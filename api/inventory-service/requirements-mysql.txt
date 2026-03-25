@@ -1,0 +1,17 @@
+# requirements-mysql.txt
+# Dépendances spécifiques pour MySQL
+
+mysql-connector-python==8.2.0 # Official MySQL connector
+
+# Alternative (plus populaire):
+# PyMySQL==1.1.0              # Pure Python implementation
+# cryptography==41.0.7        # Required by PyMySQL
+
+# Installation MySQL (si vous ne l'avez pas):
+# Windows: https://dev.mysql.com/downloads/mysql/
+# macOS: brew install mysql
+# Linux: apt-get install mysql-server
+# Docker: docker run -e MYSQL_ROOT_PASSWORD=mypassword -p 3306:3306 mysql
+
+# Configuration dans .env:
+# DATABASE_URL=mysql+pymysql://root:password@localhost:3306/inventory_db
