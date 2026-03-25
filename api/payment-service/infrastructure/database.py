@@ -28,21 +28,37 @@ async def init_db():
     
     settings = get_settings()
     
-    # Créer le moteur async
-    _engine = create_async_engine(
-        settings.DATABASE_URL,
-        echo=settings.DATABASE_ECHO,
-        poolclass=NullPool,  # Pour éviter les fuites de connexions
-    )
+    try:
+        # Créer le moteur async
+        _engine = create_async_engine(
+            settings.DATABASE_URL,
+            echo=settings.DATABASE_ECHO,
+            poolclass=NullPool,  # Pour éviter les fuites de connexions
+        )
+        
+        # Créer le session factory
+        _async_session_maker = async_sessionmaker(
+            _engine, class_=AsyncSession, expire_on_commit=False
+        )
+        
+        # Créer les tables
+        async with _engine.begin() as conn:
+            await conn.run_sync(Base.metadata.create_all)
+        
+        import structlog
+        logger = structlog.get_logger(__name__)
+        logger.info("✅ Database initialized successfully", database_url=settings.DATABASE_URL)
     
-    # Créer le session factory
-    _async_session_maker = async_sessionmaker(
-        _engine, class_=AsyncSession, expire_on_commit=False
-    )
-    
-    # Créer les tables
-    async with _engine.begin() as conn:
-        await conn.run_sync(Base.metadata.create_all)
+    except Exception as e:
+        import structlog
+        logger = structlog.get_logger(__name__)
+        logger.error(
+            "⚠️ Database connection failed (will run in degraded mode)",
+            error=str(e),
+            database_url=settings.DATABASE_URL,
+        )
+        # Ne pas lever l'exception - laisser l'app démarrer en mode dégradé
+        # Les endpoints qui ont besoin de la DB feront fail proprement
 
 
 async def close_db():

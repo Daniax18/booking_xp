@@ -1,7 +1,7 @@
 """
 DECORATOR PATTERN — Décorateurs pour enrichir le service
 
-📚 Explication Pédagogique :
+Explication Pédagogique :
 Les décorateurs permettent d'ajouter des responsabilités à une classe
 SANS modifier la classe elle-même.
 
