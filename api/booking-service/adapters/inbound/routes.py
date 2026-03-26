@@ -1,4 +1,4 @@
-﻿from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy import text
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -83,41 +83,53 @@ async def communication_contracts():
     """Expose the prepared REST and event contracts for inter-service integration."""
     return CommunicationContractsResponse(
         inventory_rest={
-            'availability_check': {
-                'method': 'POST',
-                'path': '/api/v1/inventory/internal/availability/check',
+            'get_resource': {
+                'method': 'GET',
+                'path': '/api/v1/inventory/resources/{resource_id}',
+            },
+            'get_availability': {
+                'method': 'GET',
+                'path': '/api/v1/inventory/availability/{resource_id}',
+            },
+            'reserve_slot': {
+                'method': 'PUT',
+                'path': '/api/v1/inventory/availability/{slot_id}',
                 'payload': {
-                    'resource_id': 'uuid',
-                    'resource_type': 'HOTEL_ROOM|RESTAURANT_TABLE|VENUE',
-                    'start_time': 'ISO-8601 datetime',
-                    'end_time': 'ISO-8601 datetime',
-                    'party_size': 2,
+                    'quantity': 0,
+                    'reason_if_unavailable': 'reserved_by_booking_service',
                 },
             },
-            'hold': {
-                'method': 'POST',
-                'path': '/api/v1/inventory/internal/reservations/hold',
-            },
-            'release': {
-                'method': 'POST',
-                'path': '/api/v1/inventory/internal/reservations/release',
+            'release_slot': {
+                'method': 'PUT',
+                'path': '/api/v1/inventory/availability/{slot_id}',
+                'payload': {
+                    'quantity': 1,
+                    'reason_if_unavailable': None,
+                },
             },
         },
         payment_rest={
-            'create_transaction': {
+            'create_payment': {
                 'method': 'POST',
-                'path': '/api/v1/payments/internal/transactions',
+                'path': '/api/v1/payments/',
                 'payload': {
                     'booking_id': 'uuid',
-                    'user_id': 'uuid',
-                    'amount': '149.99',
+                    'amount': 149.99,
                     'currency': 'EUR',
-                    'resource_type': 'HOTEL_ROOM|RESTAURANT_TABLE|VENUE',
+                    'method': 'CREDIT_CARD',
+                    'metadata': {
+                        'user_id': 'uuid',
+                        'resource_type': 'HOTEL_ROOM|RESTAURANT_TABLE|VENUE',
+                    },
                 },
             },
-            'cancel_transaction': {
+            'process_payment': {
                 'method': 'POST',
-                'path': '/api/v1/payments/internal/transactions/cancel',
+                'path': '/api/v1/payments/{payment_id}/process',
+            },
+            'cancel_or_refund_payment': {
+                'method': 'POST',
+                'path': '/api/v1/payments/{payment_id}/cancel or /refund',
             },
         },
         published_events=[
@@ -195,3 +207,4 @@ async def get_booking(booking_id: str, db: AsyncSession = Depends(get_db_session
     if not booking:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail='Booking not found')
     return BookingResponse.from_domain(booking)
+

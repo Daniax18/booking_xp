@@ -1,50 +1,50 @@
-# domain/models/resource.py
 from dataclasses import dataclass, field
 from datetime import datetime
-from uuid import UUID
 from enum import Enum
 from typing import Optional
+from uuid import UUID
 
 
 class ResourceType(str, Enum):
-    """Énumération des types de ressources disponibles."""
-    ROOM = "room"
-    EQUIPMENT = "equipment"
-    VEHICLE = "vehicle"
-    SERVICE = "service"
+    """Enumerate the business resource types supported by Booking XP."""
+
+    HOTEL_ROOM = 'HOTEL_ROOM'
+    RESTAURANT_TABLE = 'RESTAURANT_TABLE'
+    VENUE = 'VENUE'
 
 
 @dataclass
 class Resource:
-    """
-    Entité de domaine représentant une ressource (salle, équipement, véhicule, service).
-    """
+    """Represent a reservable business resource stored by inventory-service."""
+
     id: UUID
     name: str
     type: ResourceType
     description: str
-    capacity: int  # Nombre de personnes ou unités disponibles
+    capacity: int
     location: str
-    price: float  # Prix par unité de temps
+    price: float
     created_at: datetime
     updated_at: datetime = field(default_factory=datetime.now)
     is_active: bool = True
-    
+
     def __post_init__(self):
-        """Validations du domaine."""
+        """Validate core business invariants when a resource is created or rebuilt."""
+        if isinstance(self.type, str):
+            self.type = ResourceType(self.type)
         if self.capacity <= 0:
-            raise ValueError("La capacité doit être positive")
+            raise ValueError('La capacite doit etre positive')
         if self.price < 0:
-            raise ValueError("Le prix ne peut pas être négatif")
+            raise ValueError('Le prix ne peut pas etre negatif')
         if not self.name or len(self.name.strip()) == 0:
-            raise ValueError("Le nom de la ressource est obligatoire")
-    
+            raise ValueError('Le nom de la ressource est obligatoire')
+
     def deactivate(self) -> None:
-        """Désactiver la ressource."""
+        """Deactivate the resource so it can no longer be reserved."""
         self.is_active = False
         self.updated_at = datetime.now()
-    
+
     def activate(self) -> None:
-        """Activer la ressource."""
+        """Reactivate the resource so it becomes reservable again."""
         self.is_active = True
         self.updated_at = datetime.now()

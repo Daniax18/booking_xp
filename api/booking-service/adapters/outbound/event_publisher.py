@@ -1,4 +1,4 @@
-﻿import structlog
+import structlog
 
 from domain.ports.outbound import EventPublisherPort, SystemLogPort
 

@@ -1,24 +1,21 @@
-# application/dtos.py
 """DTOs (Data Transfer Objects) pour l'API."""
 from dataclasses import dataclass
 from datetime import datetime
-from typing import Optional, List
 from enum import Enum
+from typing import List, Optional
 
 
 class ResourceTypeEnum(str, Enum):
-    """Énumération des types de ressources."""
-    ROOM = "room"
-    EQUIPMENT = "equipment"
-    VEHICLE = "vehicle"
-    SERVICE = "service"
+    """Expose the business resource types used across the reservation platform."""
 
+    HOTEL_ROOM = 'HOTEL_ROOM'
+    RESTAURANT_TABLE = 'RESTAURANT_TABLE'
+    VENUE = 'VENUE'
 
-# ====== DTOs pour les Ressources ======
 
 @dataclass
 class CreateResourceRequest:
-    """DTO de requête pour créer une ressource."""
+    """DTO de requete pour creer une ressource."""
     name: str
     type: ResourceTypeEnum
     description: str
@@ -29,7 +26,7 @@ class CreateResourceRequest:
 
 @dataclass
 class CreateResourceResponse:
-    """DTO de réponse pour une ressource créée."""
+    """DTO de reponse pour une ressource creee."""
     id: str
     name: str
     type: str
@@ -43,7 +40,7 @@ class CreateResourceResponse:
 
 @dataclass
 class UpdateResourceRequest:
-    """DTO de requête pour mettre à jour une ressource."""
+    """DTO de requete pour mettre a jour une ressource."""
     name: Optional[str] = None
     type: Optional[ResourceTypeEnum] = None
     description: Optional[str] = None
@@ -55,7 +52,7 @@ class UpdateResourceRequest:
 
 @dataclass
 class ResourceResponse:
-    """DTO de réponse pour une ressource."""
+    """DTO de reponse pour une ressource."""
     id: str
     name: str
     type: str
@@ -70,16 +67,14 @@ class ResourceResponse:
 
 @dataclass
 class ResourceListResponse:
-    """DTO de réponse pour une liste de ressources."""
+    """DTO de reponse pour une liste de ressources."""
     resources: List[ResourceResponse]
     total: int
 
 
-# ====== DTOs pour la Disponibilité ======
-
 @dataclass
 class CreateAvailabilitySlotRequest:
-    """DTO de requête pour créer un créneau de disponibilité."""
+    """DTO de requete pour creer un creneau de disponibilite."""
     resource_id: str
     start_time: str
     end_time: str
@@ -89,7 +84,7 @@ class CreateAvailabilitySlotRequest:
 
 @dataclass
 class AvailabilitySlotResponse:
-    """DTO de réponse pour un créneau de disponibilité."""
+    """DTO de reponse pour un creneau de disponibilite."""
     id: str
     resource_id: str
     start_time: str
@@ -104,7 +99,7 @@ class AvailabilitySlotResponse:
 
 @dataclass
 class GetAvailabilityRequest:
-    """DTO de requête pour vérifier la disponibilité."""
+    """DTO de requete pour verifier la disponibilite."""
     resource_id: str
     start_time: str
     end_time: str
@@ -113,7 +108,7 @@ class GetAvailabilityRequest:
 
 @dataclass
 class AvailabilityCheckResponse:
-    """DTO de réponse pour une vérification de disponibilité."""
+    """DTO de reponse pour une verification de disponibilite."""
     resource_id: str
     is_available: bool
     period: dict
@@ -122,7 +117,7 @@ class AvailabilityCheckResponse:
 
 @dataclass
 class AvailabilityListResponse:
-    """DTO de réponse pour une liste de créneaux de disponibilité."""
+    """DTO de reponse pour une liste de creneaux de disponibilite."""
     resource_id: str
     period: dict
     available_slots: List[AvailabilitySlotResponse]
@@ -130,11 +125,9 @@ class AvailabilityListResponse:
     total_available_minutes: int
 
 
-# ====== DTOs pour les Erreurs ======
-
 @dataclass
 class ErrorResponse:
-    """DTO de réponse pour les erreurs."""
+    """DTO de reponse pour les erreurs."""
     error: str
     message: str
     timestamp: str
@@ -143,7 +136,7 @@ class ErrorResponse:
 
 @dataclass
 class ValidationErrorResponse:
-    """DTO de réponse pour les erreurs de validation."""
+    """DTO de reponse pour les erreurs de validation."""
     error: str
     message: str
     details: dict

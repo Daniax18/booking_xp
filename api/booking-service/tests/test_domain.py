@@ -1,12 +1,12 @@
-﻿from datetime import datetime, timedelta, timezone
+from datetime import datetime, timedelta, timezone
 from decimal import Decimal
 
 import pytest
 
 from domain.models.booking import BookingStatus, PaymentStatus, ResourceType, SagaStatus
 from domain.ports.outbound import InventoryAvailability, InventoryReservation, PaymentResult
-from domain.services.booking_service import BookingConflictError, BookingService
 from domain.pricing import PricingStrategyFactory
+from domain.services.booking_service import BookingConflictError, BookingService
 
 
 class InMemoryBookingRepository:
@@ -230,8 +230,10 @@ async def test_payment_event_confirms_pending_booking(booking_dependencies):
         end_time=end_time,
         party_size=25,
     )
+    assert booking.status == BookingStatus.PENDING
+    assert booking.payment_status == PaymentStatus.PENDING
+
     updated = await service.handle_payment_event(booking_id=booking.id, status='PAID', payment_reference='pay-999')
 
-    assert booking.status == BookingStatus.PENDING
     assert updated.status == BookingStatus.CONFIRMED
     assert updated.payment_reference == 'pay-999'

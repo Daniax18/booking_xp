@@ -1,4 +1,4 @@
-﻿from sqlalchemy import and_, or_, select
+from sqlalchemy import and_, or_, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from adapters.outbound.orm_models import BookingORM

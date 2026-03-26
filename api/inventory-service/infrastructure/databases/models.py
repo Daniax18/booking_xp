@@ -1,18 +1,19 @@
-# infrastructure/databases/models.py
-from sqlalchemy import Column, String, Float, Integer, Boolean, DateTime, ForeignKey
-from sqlalchemy.ext.declarative import declarative_base
 from datetime import datetime
+
+from sqlalchemy import Boolean, Column, DateTime, Float, ForeignKey, Integer, String
+from sqlalchemy.ext.declarative import declarative_base
 
 Base = declarative_base()
 
 
 class ResourceModel(Base):
-    """Modèle de base de données pour les ressources."""
-    __tablename__ = "resources"
+    """Modele de base de donnees pour les ressources."""
+
+    __tablename__ = 'resources'
 
     id = Column(String, primary_key=True)
     name = Column(String, nullable=False)
-    type = Column(String, nullable=False)  # room, equipment, vehicle, service
+    type = Column(String, nullable=False)  # HOTEL_ROOM, RESTAURANT_TABLE, VENUE
     description = Column(String, nullable=True)
     capacity = Column(Integer, nullable=False)
     location = Column(String, nullable=False)
@@ -23,11 +24,12 @@ class ResourceModel(Base):
 
 
 class AvailabilitySlotModel(Base):
-    """Modèle de base de données pour les créneaux de disponibilité."""
-    __tablename__ = "availability_slots"
+    """Modele de base de donnees pour les creneaux de disponibilite."""
+
+    __tablename__ = 'availability_slots'
 
     id = Column(String, primary_key=True)
-    resource_id = Column(String, ForeignKey("resources.id"), nullable=False)
+    resource_id = Column(String, ForeignKey('resources.id'), nullable=False)
     start_time = Column(DateTime, nullable=False)
     end_time = Column(DateTime, nullable=False)
     is_available = Column(Boolean, nullable=False, default=True)
