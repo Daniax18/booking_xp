@@ -12,6 +12,28 @@
 services:
 
   # ═══════════════════════════════════════════════
+  # API GATEWAY — Sécurité JWT + Routage
+  # ═══════════════════════════════════════════════
+
+  gateway-api:
+    build:
+      context: ./api/gateway-api
+      dockerfile: Dockerfile
+    container_name: gateway-api
+    ports:
+      - "8000:8000"
+    env_file:
+      - ./api/gateway-api/.env
+    depends_on:
+      - auth-service
+    #  - inventory-service #TO DO : Decomment when all services are available
+    #  - booking-service
+    #  - payment-service
+    networks:
+      - booking-network
+    restart: unless-stopped
+
+  # ═══════════════════════════════════════════════
   # 📋 LOG SERVICE — Centralisation des logs
   # ═══════════════════════════════════════════════
   log-service:
@@ -68,12 +90,14 @@ services:
     build:
       context: ./api/auth-service
       dockerfile: Dockerfile
-    container_name: auth-service
+    container_name: authentification-service
     ports:
       - "8001:8001"
     environment:
       - DATABASE_URL=postgresql+asyncpg://auth_user:auth_password@auth-db:5432/auth_db
-      - LOG_SERVICE_URL=http://log-service:8005  # â† Synchro : envoie ses logs ici
+      - LOG_SERVICE_URL=http://log-service:8005  # ← Synchro : envoie ses logs ici
+      - JWT_SECRET_KEY=change-me-in-production
+      - JWT_ALGORITHM=HS256
     depends_on:
       auth-db:
         condition: service_healthy
