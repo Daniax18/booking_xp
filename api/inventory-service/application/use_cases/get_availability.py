@@ -20,7 +20,7 @@ class GetAvailability:
         self.availability_repo = availability_repo
         self.availability_service = AvailabilityService(availability_repo)
 
-    def execute(self, resource_id: str, start_time: datetime, end_time: datetime) -> Dict[str, Any]:
+    async def execute(self, resource_id: str, start_time: datetime, end_time: datetime) -> Dict[str, Any]:
         """
         Récupérer la disponibilité d'une ressource pour une période.
         
@@ -38,7 +38,7 @@ class GetAvailability:
         resource_uuid = UUID(resource_id)
         
         # Vérifier que la ressource existe
-        if not self.resource_repo.exists(resource_uuid):
+        if not await self.resource_repo.exists(resource_uuid):
             raise ResourceNotFound(resource_id)
         
         # Récupérer les créneaux disponibles
@@ -71,7 +71,7 @@ class GetAvailability:
             "total_available_minutes": sum(s.get_duration_minutes() for s in available_slots),
         }
 
-    def check_availability(
+    async def check_availability(
         self,
         resource_id: str,
         start_time: datetime,
@@ -87,7 +87,7 @@ class GetAvailability:
         resource_uuid = UUID(resource_id)
         
         # Vérifier que la ressource existe
-        if not self.resource_repo.exists(resource_uuid):
+        if not await self.resource_repo.exists(resource_uuid):
             raise ResourceNotFound(resource_id)
         
         is_available = self.availability_service.is_available(
@@ -104,7 +104,7 @@ class GetAvailability:
             "quantity_required": quantity,
         }
 
-    def get_next_available_slot(
+    async def get_next_available_slot(
         self,
         resource_id: str,
         start_time: datetime,
@@ -119,7 +119,7 @@ class GetAvailability:
         resource_uuid = UUID(resource_id)
         
         # Vérifier que la ressource existe
-        if not self.resource_repo.exists(resource_uuid):
+        if not await self.resource_repo.exists(resource_uuid):
             raise ResourceNotFound(resource_id)
         
         slot = self.availability_service.find_next_available_slot(

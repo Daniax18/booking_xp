@@ -35,10 +35,10 @@ class AppConfig:
 class Config:
     """Configuration centralisée du service."""
 
-    # Database
+    # Database - PostgreSQL (asyncpg driver - asynchrone)
     DATABASE_URL: str = os.environ.get(
         "DATABASE_URL",
-        "sqlite:///./inventory_service.db"
+        "postgresql+asyncpg://inventory_user:inventory_password@localhost:5432/inventory_db"
     )
     
     # Logging

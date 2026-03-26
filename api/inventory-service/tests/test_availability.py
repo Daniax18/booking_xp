@@ -2,23 +2,25 @@
 tests/test_availability.py
 Tests pour les endpoints de disponibilité
 """
+import pytest
 from datetime import datetime, timedelta
 
 
 class TestCreateAvailabilitySlot:
     """Tests pour la création de créneaux."""
     
-    def test_create_availability_success(
-        self, test_client, sample_resource_data, sample_availability_data
+    @pytest.mark.asyncio
+    async def test_create_availability_success(
+        self, async_client, sample_resource_data, sample_availability_data
     ):
         """Test la création réussie d'un créneau."""
         # Créer une ressource d'abord
-        resource_response = test_client.post("/resources", json=sample_resource_data)
+        resource_response = await async_client.post("/resources", json=sample_resource_data)
         resource_id = resource_response.json()["id"]
         
         # Créer un créneau
         sample_availability_data["resource_id"] = resource_id
-        response = test_client.post(
+        response = await async_client.post(
             f"/resources/{resource_id}/availability",
             json=sample_availability_data
         )
@@ -29,19 +31,20 @@ class TestCreateAvailabilitySlot:
         assert "id" in data
         assert data["is_available"] == True
     
-    def test_create_availability_invalid_date_range(
-        self, test_client, sample_resource_data
+    @pytest.mark.asyncio
+    async def test_create_availability_invalid_date_range(
+        self, async_client, sample_resource_data
     ):
         """Test avec plage de dates invalide."""
         # Créer une ressource
-        resource_response = test_client.post("/resources", json=sample_resource_data)
+        resource_response = await async_client.post("/resources", json=sample_resource_data)
         resource_id = resource_response.json()["id"]
         
         # Créer un créneau avec fin avant début
         start = datetime.now()
         end = start - timedelta(hours=1)  # ❌ Invalide
         
-        response = test_client.post(
+        response = await async_client.post(
             f"/resources/{resource_id}/availability",
             json={
                 "resource_id": resource_id,
@@ -57,16 +60,17 @@ class TestCreateAvailabilitySlot:
 class TestCheckAvailability:
     """Tests pour la vérification de disponibilité."""
     
-    def test_check_availability_available(
-        self, test_client, sample_resource_data, sample_availability_data
+    @pytest.mark.asyncio
+    async def test_check_availability_available(
+        self, async_client, sample_resource_data, sample_availability_data
     ):
         """Test la vérification quand disponible."""
         # Créer ressource et créneau
-        resource_response = test_client.post("/resources", json=sample_resource_data)
+        resource_response = await async_client.post("/resources", json=sample_resource_data)
         resource_id = resource_response.json()["id"]
         
         sample_availability_data["resource_id"] = resource_id
-        test_client.post(
+        await async_client.post(
             f"/resources/{resource_id}/availability",
             json=sample_availability_data
         )
@@ -76,7 +80,7 @@ class TestCheckAvailability:
         check_start = start + timedelta(hours=1)
         check_end = check_start + timedelta(hours=2)
         
-        response = test_client.get(
+        response = await async_client.get(
             f"/resources/{resource_id}/availability/check",
             params={
                 "start_time": check_start.isoformat(),
@@ -89,18 +93,19 @@ class TestCheckAvailability:
         data = response.json()
         assert data["is_available"] == True
     
-    def test_check_availability_with_quantity(
-        self, test_client, sample_resource_data, sample_availability_data
+    @pytest.mark.asyncio
+    async def test_check_availability_with_quantity(
+        self, async_client, sample_resource_data, sample_availability_data
     ):
         """Test la vérification avec quantité."""
         # Créer ressource
-        resource_response = test_client.post("/resources", json=sample_resource_data)
+        resource_response = await async_client.post("/resources", json=sample_resource_data)
         resource_id = resource_response.json()["id"]
         
         # Créer créneau avec quantité=2
         sample_availability_data["resource_id"] = resource_id
         sample_availability_data["quantity"] = 2
-        test_client.post(
+        await async_client.post(
             f"/resources/{resource_id}/availability",
             json=sample_availability_data
         )
@@ -110,7 +115,7 @@ class TestCheckAvailability:
         check_start = start + timedelta(hours=1)
         check_end = check_start + timedelta(hours=2)
         
-        response = test_client.get(
+        response = await async_client.get(
             f"/resources/{resource_id}/availability/check",
             params={
                 "start_time": check_start.isoformat(),

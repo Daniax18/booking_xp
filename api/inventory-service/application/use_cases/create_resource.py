@@ -14,7 +14,7 @@ class CreateResource:
     def __init__(self, resource_repo: ResourceRepository):
         self.resource_repo = resource_repo
 
-    def execute(self, data: Dict[str, Any]) -> Dict[str, Any]:
+    async def execute(self, data: Dict[str, Any]) -> Dict[str, Any]:
         """
         Créer une nouvelle ressource.
         
@@ -57,7 +57,7 @@ class CreateResource:
         )
 
         # Enregistrer dans le repository
-        self.resource_repo.save(resource)
+        await self.resource_repo.save(resource)
 
         # Retourner la ressource créée
         return {

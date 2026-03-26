@@ -1,42 +1,46 @@
 """
 tests/conftest.py
-Configuration pyest pour les fixtures communes
+Configuration pytest pour les fixtures communes (async)
 """
 import pytest
+import pytest_asyncio
 from datetime import datetime, timedelta
 from uuid import uuid4
-from sqlalchemy import create_engine
-from sqlalchemy.orm import sessionmaker
-from fastapi.testclient import TestClient
+from sqlalchemy.ext.asyncio import create_async_engine, AsyncSession, async_sessionmaker
+from httpx import AsyncClient
 
 from main import app
 from infrastructure.databases.models import Base
 
 
-@pytest.fixture
-def test_client():
-    """Fixture pour le client de test FastAPI."""
-    return TestClient(app)
+@pytest_asyncio.fixture
+async def test_db():
+    """Fixture pour une base de données de test asynchrone."""
+    # Utiliser une PostgreSQL asyncpg pour les tests
+    SQLALCHEMY_TEST_DATABASE_URL = "postgresql+asyncpg://inventory_user:inventory_password@localhost:5432/inventory_test"
+    
+    engine = create_async_engine(SQLALCHEMY_TEST_DATABASE_URL, echo=False)
+    
+    # Créer toutes les tables
+    async with engine.begin() as conn:
+        await conn.run_sync(Base.metadata.create_all)
+    
+    async_session = async_sessionmaker(engine, class_=AsyncSession, expire_on_commit=False)
+    
+    yield async_session
+    
+    # Nettoyer: supprimer toutes les tables après les tests
+    async with engine.begin() as conn:
+        await conn.run_sync(Base.metadata.drop_all)
+    
+    await engine.dispose()
 
 
-@pytest.fixture
-def test_db():
-    """Fixture pour une base de données de test."""
-    # Utiliser SQLite en mémoire pour les tests
-    SQLALCHEMY_TEST_DATABASE_URL = "sqlite:///:memory:"
-    
-    engine = create_engine(
-        SQLALCHEMY_TEST_DATABASE_URL,
-        connect_args={"check_same_thread": False}
-    )
-    
-    Base.metadata.create_all(bind=engine)
-    
-    SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
-    
-    yield SessionLocal()
-    
-    Base.metadata.drop_all(bind=engine)
+@pytest_asyncio.fixture
+async def async_client():
+    """Fixture pour un client de test FastAPI asynchrone."""
+    async with AsyncClient(app=app, base_url="http://test") as client:
+        yield client
 
 
 @pytest.fixture

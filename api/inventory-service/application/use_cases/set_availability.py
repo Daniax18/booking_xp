@@ -23,7 +23,7 @@ class SetAvailability:
         self.resource_repo = resource_repo
         self.availability_repo = availability_repo
 
-    def execute(
+    async def execute(
         self,
         resource_id: str,
         start_time: datetime,
@@ -51,7 +51,7 @@ class SetAvailability:
         resource_uuid = UUID(resource_id)
         
         # Vérifier que la ressource existe
-        if not self.resource_repo.exists(resource_uuid):
+        if not await self.resource_repo.exists(resource_uuid):
             raise ResourceNotFound(resource_id)
         
         # Valider les dates
@@ -62,7 +62,7 @@ class SetAvailability:
             )
         
         # Vérifier les chevauchements
-        existing_slots = self.availability_repo.get_by_resource_and_period(
+        existing_slots = await self.availability_repo.get_by_resource_and_period(
             resource_uuid, start_time, end_time
         )
         
@@ -85,11 +85,11 @@ class SetAvailability:
                 )
         
         # Enregistrer le créneau
-        self.availability_repo.save_slot(new_slot)
+        await self.availability_repo.save_slot(new_slot)
         
         return self._format_slot(new_slot)
 
-    def mark_unavailable(
+    async def mark_unavailable(
         self,
         resource_id: str,
         start_time: datetime,
@@ -100,7 +100,7 @@ class SetAvailability:
         Créer un créneau d'indisponibilité pour une ressource.
         (Utile pour les périodes de maintenance, fermetures, etc.)
         """
-        return self.execute(
+        return await self.execute(
             resource_id,
             start_time,
             end_time,
@@ -108,12 +108,12 @@ class SetAvailability:
             reason_if_unavailable=reason
         )
 
-    def delete_availability_slot(self, slot_id: str) -> None:
+    async def delete_availability_slot(self, slot_id: str) -> None:
         """Supprimer un créneau de disponibilité."""
         slot_uuid = UUID(slot_id)
-        self.availability_repo.delete_slot(slot_uuid)
+        await self.availability_repo.delete_slot(slot_uuid)
 
-    def update_availability_slot(
+    async def update_availability_slot(
         self,
         slot_id: str,
         is_available: bool = None,
@@ -130,7 +130,7 @@ class SetAvailability:
             reason: Nouvelle raison d'indisponibilité (optionnel)
         """
         slot_uuid = UUID(slot_id)
-        slot = self.availability_repo.get_slot_by_id(slot_uuid)
+        slot = await self.availability_repo.get_slot_by_id(slot_uuid)
         
         if not slot:
             raise ValueError(f"Créneau {slot_id} non trouvé")
@@ -148,11 +148,11 @@ class SetAvailability:
         slot.updated_at = datetime.now()
         
         # Enregistrer les modifications
-        self.availability_repo.save_slot(slot)
+        await self.availability_repo.save_slot(slot)
         
         return self._format_slot(slot)
 
-    def bulk_create_availability(
+    async def bulk_create_availability(
         self,
         resource_id: str,
         slots_data: List[Dict[str, Any]]
@@ -179,7 +179,7 @@ class SetAvailability:
         created_slots = []
         
         for slot_data in slots_data:
-            created_slot = self.execute(
+            created_slot = await self.execute(
                 resource_id,
                 slot_data["start_time"],
                 slot_data["end_time"],

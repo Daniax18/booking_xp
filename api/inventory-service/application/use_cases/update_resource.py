@@ -14,7 +14,7 @@ class UpdateResource:
     def __init__(self, resource_repo: ResourceRepository):
         self.resource_repo = resource_repo
 
-    def execute(self, resource_id: str, data: Dict[str, Any]) -> Dict[str, Any]:
+    async def execute(self, resource_id: str, data: Dict[str, Any]) -> Dict[str, Any]:
         """
         Mettre à jour une ressource.
         
@@ -38,7 +38,7 @@ class UpdateResource:
             ResourceNotFound: Si la ressource n'existe pas
         """
         resource_uuid = UUID(resource_id)
-        resource = self.resource_repo.get_by_id(resource_uuid)
+        resource = await self.resource_repo.get_by_id(resource_uuid)
         
         if not resource:
             raise ResourceNotFound(resource_id)
@@ -74,33 +74,33 @@ class UpdateResource:
         resource.updated_at = datetime.now()
         
         # Enregistrer les modifications
-        self.resource_repo.save(resource)
+        await self.resource_repo.save(resource)
         
         return self._format_resource(resource)
 
-    def deactivate(self, resource_id: str) -> Dict[str, Any]:
+    async def deactivate(self, resource_id: str) -> Dict[str, Any]:
         """Désactiver une ressource."""
         resource_uuid = UUID(resource_id)
-        resource = self.resource_repo.get_by_id(resource_uuid)
+        resource = await self.resource_repo.get_by_id(resource_uuid)
         
         if not resource:
             raise ResourceNotFound(resource_id)
         
         resource.deactivate()
-        self.resource_repo.save(resource)
+        await self.resource_repo.save(resource)
         
         return self._format_resource(resource)
 
-    def activate(self, resource_id: str) -> Dict[str, Any]:
+    async def activate(self, resource_id: str) -> Dict[str, Any]:
         """Activer une ressource."""
         resource_uuid = UUID(resource_id)
-        resource = self.resource_repo.get_by_id(resource_uuid)
+        resource = await self.resource_repo.get_by_id(resource_uuid)
         
         if not resource:
             raise ResourceNotFound(resource_id)
         
         resource.activate()
-        self.resource_repo.save(resource)
+        await self.resource_repo.save(resource)
         
         return self._format_resource(resource)
 

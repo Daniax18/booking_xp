@@ -5,9 +5,10 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 from datetime import datetime
 from typing import List, Optional
-from sqlalchemy.orm import Session
+from sqlalchemy.ext.asyncio import create_async_engine, AsyncSession, async_sessionmaker
 import logging
 from uuid import UUID
+from contextlib import asynccontextmanager
 
 from application.dtos import (
     CreateResourceRequest, CreateResourceResponse, ResourceResponse,
@@ -21,27 +22,56 @@ from application.use_cases.get_availability import GetAvailability
 from application.use_cases.set_availability import SetAvailability
 from domain.repositories.interfaces import ResourceRepository, AvailabilityRepository
 from domain.exceptions import DomainException, ResourceNotFound, InvalidDateRange
-from infrastructure.databases.resource_repo import ResourceRepositorySQLAlchemy
-from infrastructure.databases.availability_repo import AvailabilityRepositorySQLAlchemy
+from infrastructure.databases.async_resource_repo import ResourceRepositoryAsync
+from infrastructure.databases.async_availability_repo import AvailabilityRepositoryAsync
 from infrastructure.databases.models import Base
-from sqlalchemy import create_engine
-from sqlalchemy.orm import sessionmaker
 
 # ====== Configuration ======
 import os
 
-DATABASE_URL = os.environ.get("DATABASE_URL", "sqlite:///./inventory_service.db")
+# PostgreSQL avec driver asyncpg (asynchrone)
+DATABASE_URL = os.environ.get("DATABASE_URL", "postgresql+asyncpg://inventory_user:inventory_password@localhost:5432/inventory_db")
 LOG_LEVEL = os.environ.get("LOG_LEVEL", "INFO")
 
 # ====== Logging ======
 logging.basicConfig(level=LOG_LEVEL)
 logger = logging.getLogger(__name__)
 
+# ====== Database Setup ======
+engine = create_async_engine(DATABASE_URL, echo=False, pool_pre_ping=True)
+Async_SessionLocal = async_sessionmaker(engine, class_=AsyncSession, expire_on_commit=False)
+
+
+async def init_db():
+    """Initialiser la base de données (créer les tables)."""
+    async with engine.begin() as conn:
+        await conn.run_sync(Base.metadata.create_all)
+
+
+async def close_db():
+    """Fermer les connexions à la base de données."""
+    await engine.dispose()
+
+
+# ====== Lifespan ======
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    """Gestion du cycle de vie de l'application."""
+    logger.info("🚀 Démarrage du service...")
+    await init_db()
+    logger.info("✅ Base de données initialisée")
+    yield
+    logger.info("🛑 Arrêt du service...")
+    await close_db()
+    logger.info("✅ Connexions fermées")
+
+
 # ====== FastAPI Application ======
 app = FastAPI(
     title="Inventory Service",
     description="Service de gestion des ressources et de leur disponibilité",
-    version="1.0.0"
+    version="1.0.0",
+    lifespan=lifespan
 )
 
 # ====== CORS Middleware ======
@@ -53,31 +83,21 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# ====== Database Setup ======
-engine = create_engine(DATABASE_URL, connect_args={"check_same_thread": False})
-SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
-
-# Créer les tables si elles n'existent pas
-Base.metadata.create_all(bind=engine)
-
-
-def get_db():
-    """Dépendance pour obtenir une session de base de données."""
-    db = SessionLocal()
-    try:
-        yield db
-    finally:
-        db.close()
+# ====== Database Dependency ======
+async def get_db():
+    """Dépendance pour obtenir une session de base de données asynchrone."""
+    async with Async_SessionLocal() as session:
+        yield session
 
 
-def get_resource_repo(db: Session = Depends(get_db)) -> ResourceRepository:
+def get_resource_repo(db: AsyncSession = Depends(get_db)) -> ResourceRepository:
     """Dépendance pour obtenir le repository des ressources."""
-    return ResourceRepositorySQLAlchemy(db)
+    return ResourceRepositoryAsync(db)
 
 
-def get_availability_repo(db: Session = Depends(get_db)) -> AvailabilityRepository:
+def get_availability_repo(db: AsyncSession = Depends(get_db)) -> AvailabilityRepository:
     """Dépendance pour obtenir le repository de disponibilité."""
-    return AvailabilityRepositorySQLAlchemy(db)
+    return AvailabilityRepositoryAsync(db)
 
 
 # ====== Exception Handlers ======
@@ -150,7 +170,7 @@ async def create_resource(
 ):
     """Créer une nouvelle ressource."""
     use_case = CreateResource(resource_repo)
-    result = use_case.execute({
+    result = await use_case.execute({
         "name": resource_data.name,
         "type": resource_data.type.value,
         "description": resource_data.description,
@@ -168,7 +188,7 @@ async def get_resource(
 ):
     """Récupérer les détails d'une ressource."""
     use_case = GetResource(resource_repo)
-    result = use_case.execute(resource_id)
+    result = await use_case.execute(resource_id)
     return result
 
 
@@ -181,9 +201,9 @@ async def list_resources(
     use_case = GetResource(resource_repo)
     
     if type:
-        results = use_case.get_resources_by_type(type)
+        results = await use_case.get_resources_by_type(type)
     else:
-        results = use_case.get_all_resources()
+        results = await use_case.get_all_resources()
     
     return results
 
@@ -202,7 +222,7 @@ async def update_resource(
         if value is not None:
             update_dict[field] = value
     
-    result = use_case.execute(resource_id, update_dict)
+    result = await use_case.execute(resource_id, update_dict)
     return result
 
 
@@ -213,7 +233,7 @@ async def deactivate_resource(
 ):
     """Désactiver une ressource."""
     use_case = UpdateResource(resource_repo)
-    result = use_case.deactivate(resource_id)
+    result = await use_case.deactivate(resource_id)
     return result
 
 
@@ -224,7 +244,7 @@ async def activate_resource(
 ):
     """Activer une ressource."""
     use_case = UpdateResource(resource_repo)
-    result = use_case.activate(resource_id)
+    result = await use_case.activate(resource_id)
     return result
 
 
@@ -243,7 +263,7 @@ async def create_availability_slot(
     start_time = datetime.fromisoformat(slot_data.start_time)
     end_time = datetime.fromisoformat(slot_data.end_time)
     
-    result = use_case.execute(
+    result = await use_case.execute(
         resource_id,
         start_time,
         end_time,
@@ -268,7 +288,7 @@ async def get_availability(
     start = datetime.fromisoformat(start_time)
     end = datetime.fromisoformat(end_time)
     
-    result = use_case.execute(resource_id, start, end)
+    result = await use_case.execute(resource_id, start, end)
     return result
 
 
@@ -287,7 +307,7 @@ async def check_availability(
     start = datetime.fromisoformat(start_time)
     end = datetime.fromisoformat(end_time)
     
-    result = use_case.check_availability(resource_id, start, end, quantity)
+    result = await use_case.check_availability(resource_id, start, end, quantity)
     return result
 
 
@@ -304,7 +324,7 @@ async def get_next_available_slot(
     
     start = datetime.fromisoformat(start_time)
     
-    result = use_case.get_next_available_slot(resource_id, start, duration_minutes)
+    result = await use_case.get_next_available_slot(resource_id, start, duration_minutes)
     return result
 
 
