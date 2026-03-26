@@ -1,21 +1,19 @@
-# â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
-# Docker Compose â€” Plateforme de RÃ©servation (Booking XP)
-# â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
-# ðŸ“š Pattern "Database per Service" :
-# Chaque microservice a sa propre base de donnÃ©es PostgreSQL.
-# Cela garantit l'isolation, l'autonomie et la rÃ©silience.
+# ──────────────────────────────────────────────────────────
+# Docker Compose — Plateforme de Réservation (Booking XP)
+# ──────────────────────────────────────────────────────────
+# 📚 Pattern "Database per Service" :
+# Chaque microservice a sa propre base de données PostgreSQL.
+# Cela garantit l'isolation, l'autonomie et la résilience.
 #
-# ðŸ”— RÃ©seau interne Docker :
-# Les services communiquent entre eux via le rÃ©seau "booking-network".
-# Ex: log-service est accessible Ã  http://log-service:8005
-# â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
-
+# 🔗 Réseau interne Docker :
+# Les services communiquent entre eux via le réseau "booking-network".
+# Ex: log-service est accessible à http://log-service:8005
+# ──────────────────────────────────────────────────────────
 services:
 
-  # â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
-  # ðŸ“‹ LOG SERVICE â€” Centralisation des logs
-  # â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
-
+  # ═══════════════════════════════════════════════
+  # 📋 LOG SERVICE — Centralisation des logs
+  # ═══════════════════════════════════════════════
   log-service:
     build:
       context: ./api/log-service
@@ -63,10 +61,9 @@ services:
       timeout: 5s
       retries: 5
 
-  # â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
-  # ðŸ” AUTH SERVICE â€” Authentification (RX-1 â€” Dania)
-  # â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
-
+  # ═══════════════════════════════════════════════
+  # 🔐 AUTH SERVICE — Authentification (RX-1 — Dania)
+  # ═══════════════════════════════════════════════
   auth-service:
     build:
       context: ./api/auth-service
@@ -104,10 +101,9 @@ services:
       timeout: 5s
       retries: 5
 
-  # â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
-  # ðŸ“¦ INVENTORY SERVICE â€” Ressources (RX-2 â€” Daddy Luciano)
-  # â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
-
+  # ═══════════════════════════════════════════════
+  # 📦 INVENTORY SERVICE — Ressources (RX-2 — Daddy Luciano)
+  # ═══════════════════════════════════════════════
   inventory-service:
     build:
       context: ./api/inventory-service
@@ -153,10 +149,9 @@ services:
       timeout: 5s
       retries: 5
 
-  # â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
-  # ðŸ“… BOOKING SERVICE â€” RÃ©servations (RX-3 â€” Gaelle)
-  # â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
-
+  # ═══════════════════════════════════════════════
+  # 📅 BOOKING SERVICE — Réservations (RX-3 — Gaelle)
+  # ═══════════════════════════════════════════════
   booking-service:
     build:
       context: ./api/booking-service
@@ -208,10 +203,9 @@ services:
       timeout: 5s
       retries: 5
 
-  # â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
-  # ðŸ’³ PAYMENT SERVICE â€” Paiement (RX-4 â€” Manoa Robel)
-  # â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
-
+  # ═══════════════════════════════════════════════
+  # 💳 PAYMENT SERVICE — Paiement (RX-4 — Manoa Robel)
+  # ═══════════════════════════════════════════════
   payment-service:
     build:
       context: ./api/payment-service
@@ -256,20 +250,19 @@ services:
       interval: 10s
       timeout: 5s
       retries: 5
-
-# â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
-# ðŸ’¾ Volumes persistants
-# â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
+# ═══════════════════════════════════════════════
+# 💾 Volumes persistants
+# ═══════════════════════════════════════════════
 volumes:
   auth-db-data:
   inventory-db-data:
   booking-db-data:
   payment-db-data:
   log-db-data:
-
-# â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
-# ðŸŒ RÃ©seau interne
-# â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
+  
+# ═══════════════════════════════════════════════
+# 🌐 Réseau interne
+# ═══════════════════════════════════════════════
 networks:
   booking-network:
     driver: bridge
