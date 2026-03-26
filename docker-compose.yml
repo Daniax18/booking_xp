@@ -1,20 +1,20 @@
-# ──────────────────────────────────────────────────────────
-# Docker Compose — Plateforme de Réservation (Booking XP)
-# ──────────────────────────────────────────────────────────
-# 📚 Pattern "Database per Service" :
-# Chaque microservice a sa propre base de données PostgreSQL.
-# Cela garantit l'isolation, l'autonomie et la résilience.
+﻿# â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+# Docker Compose â€” Plateforme de RÃ©servation (Booking XP)
+# â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+# ðŸ“š Pattern "Database per Service" :
+# Chaque microservice a sa propre base de donnÃ©es PostgreSQL.
+# Cela garantit l'isolation, l'autonomie et la rÃ©silience.
 #
-# 🔗 Réseau interne Docker :
-# Les services communiquent entre eux via le réseau "booking-network".
-# Ex: log-service est accessible à http://log-service:8005
-# ──────────────────────────────────────────────────────────
+# ðŸ”— RÃ©seau interne Docker :
+# Les services communiquent entre eux via le rÃ©seau "booking-network".
+# Ex: log-service est accessible Ã  http://log-service:8005
+# â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 services:
 
-  # ═══════════════════════════════════════════════
-  # 📋 LOG SERVICE — Centralisation des logs
-  # ═══════════════════════════════════════════════
+  # â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
+  # ðŸ“‹ LOG SERVICE â€” Centralisation des logs
+  # â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
 
   log-service:
     build:
@@ -53,7 +53,7 @@ services:
     volumes:
       - log-db-data:/var/lib/postgresql/data
     ports:
-      - "5435:5432"     # Port externe 5435 pour éviter les conflits
+      - "5435:5432"     # Port externe 5435 pour Ã©viter les conflits
     networks:
       - booking-network
     restart: unless-stopped
@@ -63,9 +63,9 @@ services:
       timeout: 5s
       retries: 5
 
-  # ═══════════════════════════════════════════════
-  # 🔐 AUTH SERVICE — Authentification (RX-1 — Dania)
-  # ═══════════════════════════════════════════════
+  # â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
+  # ðŸ” AUTH SERVICE â€” Authentification (RX-1 â€” Dania)
+  # â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
 
   auth-service:
     build:
@@ -76,7 +76,7 @@ services:
       - "8001:8001"
     environment:
       - DATABASE_URL=postgresql+asyncpg://auth_user:auth_password@auth-db:5432/auth_db
-      - LOG_SERVICE_URL=http://log-service:8005  # ← Synchro : envoie ses logs ici
+      - LOG_SERVICE_URL=http://log-service:8005  # â† Synchro : envoie ses logs ici
     depends_on:
       auth-db:
         condition: service_healthy
@@ -104,9 +104,9 @@ services:
       timeout: 5s
       retries: 5
 
-  # ═══════════════════════════════════════════════
-  # 📦 INVENTORY SERVICE — Ressources (RX-2 — Daddy Luciano)
-  # ═══════════════════════════════════════════════
+  # â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
+  # ðŸ“¦ INVENTORY SERVICE â€” Ressources (RX-2 â€” Daddy Luciano)
+  # â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
 
   inventory-service:
     build:
@@ -145,9 +145,9 @@ services:
       timeout: 5s
       retries: 5
 
-  # ═══════════════════════════════════════════════
-  # 📅 BOOKING SERVICE — Réservations (RX-3 — Gaelle)
-  # ═══════════════════════════════════════════════
+  # â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
+  # ðŸ“… BOOKING SERVICE â€” RÃ©servations (RX-3 â€” Gaelle)
+  # â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
 
   booking-service:
     build:
@@ -157,16 +157,28 @@ services:
     ports:
       - "8003:8003"
     environment:
+      - SERVICE_NAME=booking-service
+      - SERVICE_PORT=8003
       - DATABASE_URL=postgresql+asyncpg://booking_user:booking_password@booking-db:5432/booking_db
       - LOG_SERVICE_URL=http://log-service:8005
       - PAYMENT_SERVICE_URL=http://payment-service:8004
       - INVENTORY_SERVICE_URL=http://inventory-service:8002
+      - PAYMENT_INTEGRATION_MODE=stub
+      - INVENTORY_INTEGRATION_MODE=stub
+      - LOG_LEVEL=INFO
+      - LOG_FORMAT=json
     depends_on:
       booking-db:
         condition: service_healthy
     networks:
       - booking-network
     restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "python", "-c", "import httpx; r=httpx.get('http://localhost:8003/api/v1/bookings/health'); exit(0 if r.status_code==200 else 1)"]
+      interval: 30s
+      timeout: 10s
+      start_period: 10s
+      retries: 3
 
   booking-db:
     image: postgres:16-alpine
@@ -188,9 +200,9 @@ services:
       timeout: 5s
       retries: 5
 
-  # ═══════════════════════════════════════════════
-  # 💳 PAYMENT SERVICE — Paiement (RX-4 — Manoa Robel)
-  # ═══════════════════════════════════════════════
+  # â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
+  # ðŸ’³ PAYMENT SERVICE â€” Paiement (RX-4 â€” Manoa Robel)
+  # â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
 
   payment-service:
     build:
@@ -229,9 +241,9 @@ services:
       timeout: 5s
       retries: 5
 
-# ═══════════════════════════════════════════════
-# 💾 Volumes persistants
-# ═══════════════════════════════════════════════
+# â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
+# ðŸ’¾ Volumes persistants
+# â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
 volumes:
   auth-db-data:
   inventory-db-data:
@@ -239,9 +251,10 @@ volumes:
   payment-db-data:
   log-db-data:
 
-# ═══════════════════════════════════════════════
-# 🌐 Réseau interne
-# ═══════════════════════════════════════════════
+# â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
+# ðŸŒ RÃ©seau interne
+# â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
 networks:
   booking-network:
     driver: bridge
+
