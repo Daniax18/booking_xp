@@ -1,3 +1,41 @@
-# Inventory Service Dependencies (placeholder)
-fastapi==0.115.0
-uvicorn[standard]==0.30.0
+# ====== CORE DEPENDENCIES ======
+
+# Web Framework
+fastapi==0.104.1              # Framework API REST haute perfomance
+uvicorn[standard]==0.24.0     # Serveur ASGI pour FastAPI
+
+# Database ORM
+sqlalchemy==2.0.23            # ORM SQL puisant et flexible
+alembic==1.13.1               # Migrations de BD pour SQLAlchemy
+asyncpg==0.29.0               # PostgreSQL async driver
+
+# Data Validation
+pydantic==2.5.0               # Validation des données et DTOs
+pydantic-settings==2.1.0      # Gestion des variables d'environnement
+
+# Configuration
+python-dotenv==1.0.0          # Charger .env dans os.environ
+
+# Database Drivers - PostgreSQL
+asyncpg==0.29.0               # PostgreSQL async driver (asyncpg)
+# psycopg2-binary==2.9.9       # PostgreSQL sync driver (not needed)
+
+# ====== LOGGING & MONITORING ======
+python-json-logger==2.0.7     # Logs structurés en JSON
+
+# ====== UTILITIES ======
+requests==2.31.0              # HTTP client (pour appeler d'autres services)
+
+# ====== PRODUCTION DEPENDENCIES ======
+# gunicorn==21.2.0            # Production WSGI server (remplace uvicorn)
+# prometheus-client==0.19.0   # Métriques Prometheus
+
+# ====== DEVELOPMENT DEPENDENCIES ======
+pytest==7.4.3               # Framework de tests
+pytest-cov==4.1.0           # Coverage pour pytest
+pytest-asyncio==0.21.1      # Support async pour pytest
+httpx==0.25.2               # Async HTTP client pour tests
+# black==23.12.0              # Code formatter
+# flake8==6.1.0               # Code linter
+# mypy==1.7.1                 # Type checker
+# isort==5.13.2               # Import sorter
