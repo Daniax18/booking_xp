@@ -1,0 +1,247 @@
+# ──────────────────────────────────────────────────────────
+# Docker Compose — Plateforme de Réservation (Booking XP)
+# ──────────────────────────────────────────────────────────
+# 📚 Pattern "Database per Service" :
+# Chaque microservice a sa propre base de données PostgreSQL.
+# Cela garantit l'isolation, l'autonomie et la résilience.
+#
+# 🔗 Réseau interne Docker :
+# Les services communiquent entre eux via le réseau "booking-network".
+# Ex: log-service est accessible à http://log-service:8005
+# ──────────────────────────────────────────────────────────
+
+services:
+
+  # ═══════════════════════════════════════════════
+  # 📋 LOG SERVICE — Centralisation des logs
+  # ═══════════════════════════════════════════════
+
+  log-service:
+    build:
+      context: ./api/log-service
+      dockerfile: Dockerfile
+    container_name: log-service
+    ports:
+      - "8005:8005"
+    environment:
+      - SERVICE_NAME=log-service
+      - SERVICE_PORT=8005
+      - DATABASE_URL=postgresql+asyncpg://log_user:log_password@log-db:5432/log_db
+      - LOG_LEVEL=INFO
+      - LOG_FORMAT=json
+      - DEBUG=false
+    depends_on:
+      log-db:
+        condition: service_healthy
+    networks:
+      - booking-network
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "python", "-c", "import httpx; r=httpx.get('http://localhost:8005/api/v1/health'); exit(0 if r.status_code==200 else 1)"]
+      interval: 30s
+      timeout: 10s
+      start_period: 10s
+      retries: 3
+
+  log-db:
+    image: postgres:16-alpine
+    container_name: log-db
+    environment:
+      POSTGRES_DB: log_db
+      POSTGRES_USER: log_user
+      POSTGRES_PASSWORD: log_password
+    volumes:
+      - log-db-data:/var/lib/postgresql/data
+    ports:
+      - "5435:5432"     # Port externe 5435 pour éviter les conflits
+    networks:
+      - booking-network
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U log_user -d log_db"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # ═══════════════════════════════════════════════
+  # 🔐 AUTH SERVICE — Authentification (RX-1 — Dania)
+  # ═══════════════════════════════════════════════
+
+  auth-service:
+    build:
+      context: ./api/auth-service
+      dockerfile: Dockerfile
+    container_name: auth-service
+    ports:
+      - "8001:8001"
+    environment:
+      - DATABASE_URL=postgresql+asyncpg://auth_user:auth_password@auth-db:5432/auth_db
+      - LOG_SERVICE_URL=http://log-service:8005  # ← Synchro : envoie ses logs ici
+    depends_on:
+      auth-db:
+        condition: service_healthy
+    networks:
+      - booking-network
+    restart: unless-stopped
+
+  auth-db:
+    image: postgres:16-alpine
+    container_name: auth-db
+    environment:
+      POSTGRES_DB: auth_db
+      POSTGRES_USER: auth_user
+      POSTGRES_PASSWORD: auth_password
+    volumes:
+      - auth-db-data:/var/lib/postgresql/data
+    ports:
+      - "5431:5432"
+    networks:
+      - booking-network
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U auth_user -d auth_db"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # ═══════════════════════════════════════════════
+  # 📦 INVENTORY SERVICE — Ressources (RX-2 — Daddy Luciano)
+  # ═══════════════════════════════════════════════
+
+  inventory-service:
+    build:
+      context: ./api/inventory-service
+      dockerfile: Dockerfile
+    container_name: inventory-service
+    ports:
+      - "8002:8002"
+    environment:
+      - DATABASE_URL=postgresql+asyncpg://inventory_user:inventory_password@inventory-db:5432/inventory_db
+      - LOG_SERVICE_URL=http://log-service:8005
+    depends_on:
+      inventory-db:
+        condition: service_healthy
+    networks:
+      - booking-network
+    restart: unless-stopped
+
+  inventory-db:
+    image: postgres:16-alpine
+    container_name: inventory-db
+    environment:
+      POSTGRES_DB: inventory_db
+      POSTGRES_USER: inventory_user
+      POSTGRES_PASSWORD: inventory_password
+    volumes:
+      - inventory-db-data:/var/lib/postgresql/data
+    ports:
+      - "5432:5432"
+    networks:
+      - booking-network
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U inventory_user -d inventory_db"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # ═══════════════════════════════════════════════
+  # 📅 BOOKING SERVICE — Réservations (RX-3 — Gaelle)
+  # ═══════════════════════════════════════════════
+
+  booking-service:
+    build:
+      context: ./api/booking-service
+      dockerfile: Dockerfile
+    container_name: booking-service
+    ports:
+      - "8003:8003"
+    environment:
+      - DATABASE_URL=postgresql+asyncpg://booking_user:booking_password@booking-db:5432/booking_db
+      - LOG_SERVICE_URL=http://log-service:8005
+      - PAYMENT_SERVICE_URL=http://payment-service:8004
+      - INVENTORY_SERVICE_URL=http://inventory-service:8002
+    depends_on:
+      booking-db:
+        condition: service_healthy
+    networks:
+      - booking-network
+    restart: unless-stopped
+
+  booking-db:
+    image: postgres:16-alpine
+    container_name: booking-db
+    environment:
+      POSTGRES_DB: booking_db
+      POSTGRES_USER: booking_user
+      POSTGRES_PASSWORD: booking_password
+    volumes:
+      - booking-db-data:/var/lib/postgresql/data
+    ports:
+      - "5433:5432"
+    networks:
+      - booking-network
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U booking_user -d booking_db"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # ═══════════════════════════════════════════════
+  # 💳 PAYMENT SERVICE — Paiement (RX-4 — Manoa Robel)
+  # ═══════════════════════════════════════════════
+
+  payment-service:
+    build:
+      context: ./api/payment-service
+      dockerfile: Dockerfile
+    container_name: payment-service
+    ports:
+      - "8004:8004"
+    environment:
+      - DATABASE_URL=postgresql+asyncpg://payment_user:payment_password@payment-db:5432/payment_db
+      - LOG_SERVICE_URL=http://log-service:8005
+    depends_on:
+      payment-db:
+        condition: service_healthy
+    networks:
+      - booking-network
+    restart: unless-stopped
+
+  payment-db:
+    image: postgres:16-alpine
+    container_name: payment-db
+    environment:
+      POSTGRES_DB: payment_db
+      POSTGRES_USER: payment_user
+      POSTGRES_PASSWORD: payment_password
+    volumes:
+      - payment-db-data:/var/lib/postgresql/data
+    ports:
+      - "5434:5432"
+    networks:
+      - booking-network
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U payment_user -d payment_db"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+# ═══════════════════════════════════════════════
+# 💾 Volumes persistants
+# ═══════════════════════════════════════════════
+volumes:
+  auth-db-data:
+  inventory-db-data:
+  booking-db-data:
+  payment-db-data:
+  log-db-data:
+
+# ═══════════════════════════════════════════════
+# 🌐 Réseau interne
+# ═══════════════════════════════════════════════
+networks:
+  booking-network:
+    driver: bridge
