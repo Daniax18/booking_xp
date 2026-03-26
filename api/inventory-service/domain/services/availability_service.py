@@ -1,155 +1,94 @@
-# domain/services/availability_service.py
-"""Service métier pour la gestion de la disponibilité des ressources."""
+"""Service de domaine pour la gestion des disponibilites."""
+
 from datetime import datetime
-from uuid import UUID
-from typing import List
+from uuid import uuid4
+
+from domain.exceptions import InvalidDateRange, ResourceNotFound
 from domain.models.availability import AvailabilitySlot
-from domain.repositories.interfaces import AvailabilityRepository
-from domain.exceptions import (
-    NoAvailabilityFound,
-    InsufficientCapacity,
-    AvailabilityOverlapError,
-)
+from domain.ports.repository import AvailabilityRepository, ResourceRepository
 
 
 class AvailabilityService:
-    """
-    Service metier pour la gestion de la disponibilité.
-    Encapsule la logique métier complexe de vérification de disponibilité.
-    """
+    """Encapsuler les regles metier des creneaux de disponibilite."""
 
-    def __init__(self, availability_repo: AvailabilityRepository):
-        self.availability_repo = availability_repo
+    def __init__(
+        self,
+        availability_repository: AvailabilityRepository,
+        resource_repository: ResourceRepository,
+    ):
+        """Initialiser le service avec ses ports de persistence."""
+        self._availability_repository = availability_repository
+        self._resource_repository = resource_repository
 
-    def is_available(
-        self, 
-        resource_id: UUID, 
-        start_time: datetime, 
+    async def create_availability(
+        self,
+        *,
+        resource_id: str,
+        start_time: datetime,
         end_time: datetime,
-        required_quantity: int = 1
-    ) -> bool:
-        """
-        Vérifier si une ressource est disponible pour une période donnée.
-        
-        Args:
-            resource_id: ID de la ressource
-            start_time: Début de la période souhaitée
-            end_time: Fin de la période souhaitée
-            required_quantity: Quantité requise (par défaut 1)
-            
-        Returns:
-            True si disponible, False sinon
-        """
-        slots = self.availability_repo.get_by_resource_and_period(
-            resource_id, start_time, end_time
-        )
-
-        for slot in slots:
-            if not slot.is_available:
-                continue
-
-            # Vérifier si le créneau couvre complètement la période demandée
-            if slot.start_time <= start_time and slot.end_time >= end_time:
-                if slot.quantity_available >= required_quantity:
-                    return True
-
-        return False
-
-    def get_available_slots(
-        self,
-        resource_id: UUID,
-        start_time: datetime,
-        end_time: datetime
-    ) -> List[AvailabilitySlot]:
-        """
-        Récupérer les créneaux disponibles pour une période.
-        
-        Returns:
-            Liste des créneaux disponibles
-        """
-        slots = self.availability_repo.get_by_resource_and_period(
-            resource_id, start_time, end_time
-        )
-        return [slot for slot in slots if slot.is_available]
-
-    def find_next_available_slot(
-        self,
-        resource_id: UUID,
-        start_time: datetime,
-        duration_minutes: int,
-        required_quantity: int = 1
+        quantity: int,
+        reason_if_unavailable: str | None = None,
     ) -> AvailabilitySlot:
-        """
-        Trouver le prochain créneau disponible à partir d'une date donnée.
-        
-        Raises:
-            NoAvailabilityFound: Si aucun créneau n'est disponible
-        """
-        from datetime import timedelta
-        
-        # Rechercher un créneau pour les 30 jours à venir
-        end_search = start_time + timedelta(days=30)
-        slots = self.availability_repo.get_by_resource_and_period(
-            resource_id, start_time, end_search
-        )
-        
-        available_slots = self.get_available_slots(
-            resource_id, start_time, end_search
-        )
-        
-        if not available_slots:
-            raise NoAvailabilityFound(
-                str(resource_id), 
-                str(start_time), 
-                str(end_search)
-            )
-        
-        # Trouver le créneau qui peut accueillir la durée demandée
-        for slot in available_slots:
-            if (slot.get_duration_minutes() >= duration_minutes and 
-                slot.quantity_available >= required_quantity):
-                return slot
-        
-        raise NoAvailabilityFound(
-            str(resource_id),
-            str(start_time),
-            str(end_search)
-        )
+        """Creer un nouveau creneau de disponibilite pour une ressource."""
+        resource = await self._resource_repository.find_by_id(resource_id)
+        if not resource:
+            raise ResourceNotFound(resource_id)
 
-    def check_overlap(self, slot1: AvailabilitySlot, slot2: AvailabilitySlot) -> bool:
-        """
-        Vérifier si deux créneaux se chevauchent.
-        """
-        return slot1.is_overlapping_with(slot2)
+        if end_time <= start_time:
+            raise InvalidDateRange(start_time.isoformat(), end_time.isoformat())
 
-    def get_utilization_rate(
+        availability_slot = AvailabilitySlot(
+            id=str(uuid4()),
+            resource_id=resource_id,
+            start_time=start_time,
+            end_time=end_time,
+            is_available=reason_if_unavailable is None,
+            quantity_available=quantity,
+            reason_if_unavailable=reason_if_unavailable,
+            created_at=datetime.utcnow(),
+            updated_at=datetime.utcnow(),
+        )
+        return await self._availability_repository.save(availability_slot)
+
+    async def get_availability(
         self,
-        resource_id: UUID,
-        start_time: datetime,
-        end_time: datetime
-    ) -> float:
-        """
-        Calculer le taux d'utilisation d'une ressource sur une période.
-        
-        Returns:
-            Taux entre 0 et 1 (0 = 0%, 1 = 100%)
-        """
-        all_slots = self.availability_repo.get_by_resource_and_period(
-            resource_id, start_time, end_time
+        *,
+        resource_id: str,
+        skip: int = 0,
+        limit: int = 100,
+    ) -> list[AvailabilitySlot]:
+        """Lister les creneaux d'une ressource existante."""
+        resource = await self._resource_repository.find_by_id(resource_id)
+        if not resource:
+            raise ResourceNotFound(resource_id)
+        return await self._availability_repository.find_by_resource_id(
+            resource_id,
+            skip=skip,
+            limit=limit,
         )
-        
-        if not all_slots:
-            return 0.0
-        
-        unavailable_minutes = sum(
-            slot.get_duration_minutes() 
-            for slot in all_slots 
-            if not slot.is_available
-        )
-        
-        total_minutes = sum(slot.get_duration_minutes() for slot in all_slots)
-        
-        if total_minutes == 0:
-            return 0.0
-        
-        return unavailable_minutes / total_minutes
+
+    async def update_availability(
+        self,
+        *,
+        slot_id: str,
+        quantity: int | None = None,
+        reason_if_unavailable: str | None = None,
+    ) -> AvailabilitySlot:
+        """Mettre a jour l'etat et la quantite d'un creneau."""
+        availability_slot = await self._availability_repository.find_by_id(slot_id)
+        if not availability_slot:
+            raise ValueError(f"Creneau {slot_id} non trouve")
+
+        if quantity is not None:
+            availability_slot.quantity_available = quantity
+        availability_slot.reason_if_unavailable = reason_if_unavailable
+        availability_slot.is_available = reason_if_unavailable is None
+        availability_slot.updated_at = datetime.utcnow()
+        return await self._availability_repository.update(availability_slot)
+
+    async def delete_availability(self, slot_id: str) -> None:
+        """Supprimer un creneau existant."""
+        availability_slot = await self._availability_repository.find_by_id(slot_id)
+        if not availability_slot:
+            raise ValueError(f"Creneau {slot_id} non trouve")
+        await self._availability_repository.delete(slot_id)

@@ -1,85 +1,32 @@
-# config.py
-"""Configuration du Inventory Service."""
-import os
-from dataclasses import dataclass
-from typing import Optional
+"""Configuration d'execution de l'Inventory Service."""
+
+from functools import lru_cache
+
+from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
-@dataclass
-class DatabaseConfig:
-    """Configuration de la base de données."""
-    url: str
-    echo: bool = False
-    pool_size: int = 5
-    max_overflow: int = 10
+class Settings(BaseSettings):
+    """Stocker la configuration chargee depuis les variables d'environnement."""
 
+    model_config = SettingsConfigDict(env_file=".env", env_file_encoding="utf-8", extra="ignore")
 
-@dataclass
-class LogConfig:
-    """Configuration du logging."""
-    level: str = "INFO"
-    format: str = "%(asctime)s - %(name)s - %(levelname)s - %(message)s"
-    file: Optional[str] = None
+    SERVICE_NAME: str = "inventory-service"
+    SERVICE_HOST: str = "0.0.0.0"
+    SERVICE_PORT: int = 8002
+    DEBUG: bool = False
 
-
-@dataclass
-class AppConfig:
-    """Configuration de l'application."""
-    host: str = "0.0.0.0"
-    port: int = 8002
-    debug: bool = False
-    title: str = "Inventory Service"
-    version: str = "1.0.0"
-
-
-class Config:
-    """Configuration centralisée du service."""
-
-    # Database - PostgreSQL (asyncpg driver - asynchrone)
-    DATABASE_URL: str = os.environ.get(
-        "DATABASE_URL",
+    DATABASE_URL: str = (
         "postgresql+asyncpg://inventory_user:inventory_password@localhost:5432/inventory_db"
     )
-    
-    # Logging
-    LOG_LEVEL: str = os.environ.get("LOG_LEVEL", "INFO")
-    LOG_FILE: Optional[str] = os.environ.get("LOG_FILE", None)
-    
-    # App
-    HOST: str = os.environ.get("HOST", "0.0.0.0")
-    PORT: int = int(os.environ.get("PORT", 8002))
-    DEBUG: bool = os.environ.get("DEBUG", "False").lower() in ("true", "1")
-    
-    # Environment
-    ENVIRONMENT: str = os.environ.get("ENVIRONMENT", "development")
-    IS_PRODUCTION: bool = ENVIRONMENT == "production"
-    
-    # CORS
-    CORS_ORIGINS: list = os.environ.get("CORS_ORIGINS", "*").split(",")
-    
-    @classmethod
-    def get_db_config(cls) -> DatabaseConfig:
-        """Récupérer la configuration de la base de données."""
-        return DatabaseConfig(
-            url=cls.DATABASE_URL,
-            echo=not cls.IS_PRODUCTION,
-            pool_size=5 if not cls.IS_PRODUCTION else 20,
-            max_overflow=10 if not cls.IS_PRODUCTION else 40
-        )
+    DATABASE_ECHO: bool = False
+    DATABASE_POOL_SIZE: int = 5
+    DATABASE_MAX_OVERFLOW: int = 10
+    DATABASE_POOL_PRE_PING: bool = True
 
-    @classmethod
-    def get_log_config(cls) -> LogConfig:
-        """Récupérer la configuration du logging."""
-        return LogConfig(
-            level=cls.LOG_LEVEL,
-            file=cls.LOG_FILE
-        )
+    CORS_ORIGINS: str = "*"
 
-    @classmethod
-    def get_app_config(cls) -> AppConfig:
-        """Récupérer la configuration de l'application."""
-        return AppConfig(
-            host=cls.HOST,
-            port=cls.PORT,
-            debug=cls.DEBUG,
-        )
+
+@lru_cache
+def get_settings() -> Settings:
+    """Retourner une instance mise en cache de la configuration."""
+    return Settings()

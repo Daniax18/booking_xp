@@ -2,10 +2,10 @@
 """Configuration de la base de données async avec SQLAlchemy."""
 from sqlalchemy.ext.asyncio import create_async_engine, AsyncSession, async_sessionmaker
 from sqlalchemy.orm import declarative_base
-from config import Settings
+from config import get_settings
 
 # Instance de configuration
-settings = Settings()
+settings = get_settings()
 
 # Base pour les modèles ORM
 Base = declarative_base()
