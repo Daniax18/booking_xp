@@ -63,7 +63,6 @@ async def init_db():
 
 async def close_db():
     """Fermer la base de données."""
-    global _engine
     if _engine:
         await _engine.dispose()
 
