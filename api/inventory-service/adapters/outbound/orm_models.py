@@ -1,18 +1,20 @@
-# adapters/outbound/orm_models.py
-"""Modèles ORM SQLAlchemy pour la base de données PostgreSQL."""
-from sqlalchemy import Column, String, Float, Integer, Boolean, DateTime, ForeignKey
-from sqlalchemy.orm import relationship
+"""Modeles ORM SQLAlchemy pour la base de donnees PostgreSQL."""
 from datetime import datetime
+
+from sqlalchemy import Boolean, Column, DateTime, Float, ForeignKey, Integer, String
+from sqlalchemy.orm import relationship
+
 from infrastructure.database import Base
 
 
 class ResourceORM(Base):
-    """Modèle ORM pour les ressources."""
-    __tablename__ = "resources"
+    """Modele ORM pour les ressources."""
+
+    __tablename__ = 'resources'
 
     id = Column(String, primary_key=True)
     name = Column(String(255), nullable=False)
-    type = Column(String(50), nullable=False)  # room, equipment, vehicle, service
+    type = Column(String(50), nullable=False)  # HOTEL_ROOM, RESTAURANT_TABLE, VENUE
     description = Column(String(1000), nullable=True)
     capacity = Column(Integer, nullable=False)
     location = Column(String(500), nullable=False)
@@ -21,16 +23,16 @@ class ResourceORM(Base):
     created_at = Column(DateTime, nullable=False, default=datetime.utcnow)
     updated_at = Column(DateTime, nullable=False, default=datetime.utcnow, onupdate=datetime.utcnow)
 
-    # Relation avec les créneaux de disponibilité
-    availability_slots = relationship("AvailabilitySlotORM", back_populates="resource", cascade="all, delete-orphan")
+    availability_slots = relationship('AvailabilitySlotORM', back_populates='resource', cascade='all, delete-orphan')
 
 
 class AvailabilitySlotORM(Base):
-    """Modèle ORM pour les créneaux de disponibilité."""
-    __tablename__ = "availability_slots"
+    """Modele ORM pour les creneaux de disponibilite."""
+
+    __tablename__ = 'availability_slots'
 
     id = Column(String, primary_key=True)
-    resource_id = Column(String, ForeignKey("resources.id"), nullable=False)
+    resource_id = Column(String, ForeignKey('resources.id'), nullable=False)
     start_time = Column(DateTime, nullable=False)
     end_time = Column(DateTime, nullable=False)
     is_available = Column(Boolean, nullable=False, default=True)
@@ -39,5 +41,4 @@ class AvailabilitySlotORM(Base):
     created_at = Column(DateTime, nullable=False, default=datetime.utcnow)
     updated_at = Column(DateTime, nullable=False, default=datetime.utcnow, onupdate=datetime.utcnow)
 
-    # Relation avec les ressources
-    resource = relationship("ResourceORM", back_populates="availability_slots")
+    resource = relationship('ResourceORM', back_populates='availability_slots')

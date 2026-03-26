@@ -9,7 +9,6 @@
 # Les services communiquent entre eux via le réseau "booking-network".
 # Ex: log-service est accessible à http://log-service:8005
 # ──────────────────────────────────────────────────────────
-
 services:
 
   # ═══════════════════════════════════════════════
@@ -37,7 +36,6 @@ services:
   # ═══════════════════════════════════════════════
   # 📋 LOG SERVICE — Centralisation des logs
   # ═══════════════════════════════════════════════
-
   log-service:
     build:
       context: ./api/log-service
@@ -75,7 +73,7 @@ services:
     volumes:
       - log-db-data:/var/lib/postgresql/data
     ports:
-      - "5435:5432"     # Port externe 5435 pour éviter les conflits
+      - "5435:5432"     # Port externe 5435 pour Ã©viter les conflits
     networks:
       - booking-network
     restart: unless-stopped
@@ -88,7 +86,6 @@ services:
   # ═══════════════════════════════════════════════
   # 🔐 AUTH SERVICE — Authentification (RX-1 — Dania)
   # ═══════════════════════════════════════════════
-
   auth-service:
     build:
       context: ./api/auth-service
@@ -131,7 +128,6 @@ services:
   # ═══════════════════════════════════════════════
   # 📦 INVENTORY SERVICE — Ressources (RX-2 — Daddy Luciano)
   # ═══════════════════════════════════════════════
-
   inventory-service:
     build:
       context: ./api/inventory-service
@@ -140,6 +136,8 @@ services:
     ports:
       - "8002:8002"
     environment:
+      - SERVICE_NAME=inventory-service
+      - SERVICE_PORT=8002
       - DATABASE_URL=postgresql+asyncpg://inventory_user:inventory_password@inventory-db:5432/inventory_db
       - LOG_SERVICE_URL=http://log-service:8005
     depends_on:
@@ -148,6 +146,12 @@ services:
     networks:
       - booking-network
     restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "python", "-c", "import httpx; r=httpx.get('http://localhost:8002/api/v1/inventory/health'); exit(0 if r.status_code==200 else 1)"]
+      interval: 30s
+      timeout: 10s
+      start_period: 10s
+      retries: 3
 
   inventory-db:
     image: postgres:16-alpine
@@ -172,7 +176,6 @@ services:
   # ═══════════════════════════════════════════════
   # 📅 BOOKING SERVICE — Réservations (RX-3 — Gaelle)
   # ═══════════════════════════════════════════════
-
   booking-service:
     build:
       context: ./api/booking-service
@@ -181,16 +184,28 @@ services:
     ports:
       - "8003:8003"
     environment:
+      - SERVICE_NAME=booking-service
+      - SERVICE_PORT=8003
       - DATABASE_URL=postgresql+asyncpg://booking_user:booking_password@booking-db:5432/booking_db
       - LOG_SERVICE_URL=http://log-service:8005
       - PAYMENT_SERVICE_URL=http://payment-service:8004
       - INVENTORY_SERVICE_URL=http://inventory-service:8002
+      - PAYMENT_INTEGRATION_MODE=http
+      - INVENTORY_INTEGRATION_MODE=http
+      - LOG_LEVEL=INFO
+      - LOG_FORMAT=json
     depends_on:
       booking-db:
         condition: service_healthy
     networks:
       - booking-network
     restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "python", "-c", "import httpx; r=httpx.get('http://localhost:8003/api/v1/bookings/health'); exit(0 if r.status_code==200 else 1)"]
+      interval: 30s
+      timeout: 10s
+      start_period: 10s
+      retries: 3
 
   booking-db:
     image: postgres:16-alpine
@@ -215,7 +230,6 @@ services:
   # ═══════════════════════════════════════════════
   # 💳 PAYMENT SERVICE — Paiement (RX-4 — Manoa Robel)
   # ═══════════════════════════════════════════════
-
   payment-service:
     build:
       context: ./api/payment-service
@@ -224,6 +238,8 @@ services:
     ports:
       - "8004:8004"
     environment:
+      - SERVICE_NAME=payment-service
+      - SERVICE_PORT=8004
       - DATABASE_URL=postgresql+asyncpg://payment_user:payment_password@payment-db:5432/payment_db
       - LOG_SERVICE_URL=http://log-service:8005
     depends_on:
@@ -232,6 +248,12 @@ services:
     networks:
       - booking-network
     restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "python", "-c", "import httpx; r=httpx.get('http://localhost:8004/api/v1/payments/health'); exit(0 if r.status_code==200 else 1)"]
+      interval: 30s
+      timeout: 10s
+      start_period: 10s
+      retries: 3
 
   payment-db:
     image: postgres:16-alpine
@@ -252,7 +274,6 @@ services:
       interval: 10s
       timeout: 5s
       retries: 5
-
 # ═══════════════════════════════════════════════
 # 💾 Volumes persistants
 # ═══════════════════════════════════════════════
@@ -262,10 +283,12 @@ volumes:
   booking-db-data:
   payment-db-data:
   log-db-data:
-
+  
 # ═══════════════════════════════════════════════
 # 🌐 Réseau interne
 # ═══════════════════════════════════════════════
 networks:
   booking-network:
     driver: bridge
+
+

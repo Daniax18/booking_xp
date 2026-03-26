@@ -7,28 +7,25 @@ from pydantic import BaseModel, Field
 
 
 class ResourceTypeEnum(str, Enum):
-    """Enum des types de ressources supportes."""
+    """Expose the business resource types expected by the booking platform."""
 
-    ROOM = "room"
-    EQUIPMENT = "equipment"
-    VEHICLE = "vehicle"
-    SERVICE = "service"
+    HOTEL_ROOM = 'HOTEL_ROOM'
+    RESTAURANT_TABLE = 'RESTAURANT_TABLE'
+    VENUE = 'VENUE'
 
 
 class CreateResourceRequest(BaseModel):
     """Representer le payload de creation d'une ressource."""
 
-    name: str = Field(..., min_length=1, max_length=255, description="Nom de la ressource")
-    type: ResourceTypeEnum = Field(..., description="Type de ressource")
-    description: str = Field(default="", max_length=1000, description="Description detaillee")
-    capacity: int = Field(..., gt=0, description="Capacite strictement positive")
-    location: str = Field(..., min_length=1, max_length=500, description="Localisation")
-    price: float = Field(..., ge=0, description="Prix positif ou nul")
+    name: str = Field(..., min_length=1, max_length=255, description='Nom de la ressource')
+    type: ResourceTypeEnum = Field(..., description='Type metier de la ressource')
+    description: str = Field(default='', max_length=1000, description='Description detaillee')
+    capacity: int = Field(..., gt=0, description='Capacite strictement positive')
+    location: str = Field(..., min_length=1, max_length=500, description='Localisation')
+    price: float = Field(..., ge=0, description='Prix positif ou nul')
 
 
 class CreateResourceResponse(BaseModel):
-    """Representer la reponse apres creation d'une ressource."""
-
     id: str
     name: str
     type: str
@@ -41,8 +38,6 @@ class CreateResourceResponse(BaseModel):
 
 
 class UpdateResourceRequest(BaseModel):
-    """Representer les champs modifiables d'une ressource."""
-
     name: Optional[str] = Field(None, min_length=1, max_length=255)
     type: Optional[ResourceTypeEnum] = None
     description: Optional[str] = Field(None, max_length=1000)
@@ -53,8 +48,6 @@ class UpdateResourceRequest(BaseModel):
 
 
 class ResourceResponse(BaseModel):
-    """Representer une ressource retournee par l'API."""
-
     id: str
     name: str
     type: str
@@ -68,15 +61,11 @@ class ResourceResponse(BaseModel):
 
 
 class ResourceListResponse(BaseModel):
-    """Representer une liste de ressources."""
-
     resources: List[ResourceResponse]
     total: int
 
 
 class CreateAvailabilitySlotRequest(BaseModel):
-    """Representer le payload de creation d'un creneau."""
-
     resource_id: str
     start_time: str
     end_time: str
@@ -85,19 +74,17 @@ class CreateAvailabilitySlotRequest(BaseModel):
 
 
 class UpdateAvailabilityRequest(BaseModel):
-    """Representer les champs modifiables d'un creneau."""
+    """Allow zero when a slot becomes fully reserved."""
 
-    quantity: Optional[int] = Field(None, gt=0, description="Quantite disponible")
+    quantity: Optional[int] = Field(None, ge=0, description='Quantite disponible restante')
     reason_if_unavailable: Optional[str] = Field(
         None,
         max_length=1000,
-        description="Raison d'indisponibilite si le creneau est indisponible",
+        description='Raison d indisponibilite si le creneau est indisponible',
     )
 
 
 class AvailabilitySlotResponse(BaseModel):
-    """Representer un creneau de disponibilite retourne par l'API."""
-
     id: str
     resource_id: str
     start_time: str
@@ -111,8 +98,6 @@ class AvailabilitySlotResponse(BaseModel):
 
 
 class GetAvailabilityRequest(BaseModel):
-    """Representer une requete de verification de disponibilite."""
-
     resource_id: str
     start_time: str
     end_time: str
@@ -120,8 +105,6 @@ class GetAvailabilityRequest(BaseModel):
 
 
 class AvailabilityCheckResponse(BaseModel):
-    """Representer le resultat d'une verification de disponibilite."""
-
     resource_id: str
     is_available: bool
     period: dict
@@ -129,8 +112,6 @@ class AvailabilityCheckResponse(BaseModel):
 
 
 class AvailabilityListResponse(BaseModel):
-    """Representer une liste de creneaux de disponibilite."""
-
     resource_id: str
     period: dict
     available_slots: List[AvailabilitySlotResponse]
@@ -139,8 +120,6 @@ class AvailabilityListResponse(BaseModel):
 
 
 class ErrorResponse(BaseModel):
-    """Representer une reponse d'erreur generique."""
-
     error: str
     message: str
     timestamp: str
@@ -148,8 +127,6 @@ class ErrorResponse(BaseModel):
 
 
 class ValidationErrorResponse(BaseModel):
-    """Representer une erreur de validation detaillee."""
-
     error: str
     message: str
     details: dict

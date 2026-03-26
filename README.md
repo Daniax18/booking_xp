@@ -1,119 +1,100 @@
-# 📋 Booking XP — Plateforme de Réservation
+# Booking XP - Plateforme de reservation
 
-> Système de gestion de réservations (restaurant / hôtel / salle) en microservices
-> Architecture Hexagonale • Python / FastAPI • PostgreSQL • Docker
+Systeme de gestion de reservations (restaurant / hotel / salle) en microservices.
+Architecture hexagonale, Python / FastAPI, PostgreSQL et Docker.
 
-## 🏗️ Architecture
+## Architecture
 
-Le projet suit une **architecture hexagonale** (Ports & Adapters) avec le pattern **Database per Service**.
+Le projet suit une architecture hexagonale (Ports and Adapters) avec le pattern Database per Service.
+Chaque microservice possede sa propre base PostgreSQL.
 
-```
-┌─────────────────────────────────────────────────────────┐
-│                     API Gateway                         │
-│              (reverse proxy / load balancer)             │
-├────────┬──────────┬──────────┬───────────┬──────────────┤
-│  Auth  │ Booking  │ Payment  │ Inventory │     Log      │
-│ :8001  │  :8003   │  :8004   │   :8002   │    :8005     │
-├────────┼──────────┼──────────┼───────────┼──────────────┤
-│ auth   │ booking  │ payment  │ inventory │    log       │
-│  _db   │   _db    │   _db    │    _db    │    _db       │
-│ :5431  │  :5433   │  :5434   │   :5432   │   :5435      │
-└────────┴──────────┴──────────┴───────────┴──────────────┘
-```
+Services exposes:
+- auth-service: `:8001`
+- inventory-service: `:8002`
+- booking-service: `:8003`
+- payment-service: `:8004`
+- log-service: `:8005`
 
-### Structure d'un service (Hexagonal)
-```
+Bases de donnees:
+- auth-db: `:5431`
+- inventory-db: `:5432`
+- booking-db: `:5433`
+- payment-db: `:5434`
+- log-db: `:5435`
+
+## Structure d'un service
+
+```text
 service/
-├── domain/              # 🧠 Cœur métier (indépendant)
-│   ├── models/          # Entités du domaine
-│   ├── ports/           # Interfaces (inbound/outbound)
-│   └── services/        # Logique métier
-├── adapters/            # 🔌 Connexion au monde extérieur
-│   ├── inbound/         # API REST (routes, schémas)
-│   └── outbound/        # Repositories (PostgreSQL)
-├── infrastructure/      # ⚙️ Configuration, DB, middleware
-├── tests/               # ✅ Tests unitaires & intégration
-├── Dockerfile           # 🐳 Image Docker
-└── main.py              # 🚀 Point d'entrée
+  domain/
+    models/
+    ports/
+    services/
+  adapters/
+    inbound/
+    outbound/
+  infrastructure/
+  tests/
+  Dockerfile
+  main.py
 ```
 
-## 👥 Équipe & Tickets (Sprint 2)
+## Equipe et tickets
 
-| Ticket | Service | Responsable | Status |
-|--------|---------|-------------|--------|
-| RX-1 | Auth Service | ANDRIANANDRASANA Midera Dania | 🟡 En cours |
-| RX-2 | Inventory Service | Daddy Luciano RAVALISON | 🔵 À faire |
-| RX-3 | Booking Service | Gaelle Robsomanitrandrasana | 🔵 À faire |
-| RX-4 | Payment Service | Manoa Robel | 🔵 À faire |
-| RX-5 | Log Service | mccibs25273 (El Nadje) | 🟡 En cours |
-| RX-6 | Config Git & Structure | ANDRIANANDRASANA M. Dania | ✅ Terminé |
-| RX-7 | Présentation PPT | Non assigné | 🔵 À faire |
-| RX-8 | Pipeline CI-CD | mccibs25273 (El Nadje) | 🔵 À faire |
+- RX-1 Authentification: auth-service
+- RX-2 Ressources et disponibilites: inventory-service
+- RX-3 Reservations: booking-service
+- RX-4 Paiement: payment-service
+- RX-5 Observabilite: log-service
 
-## 🚀 Démarrage rapide
+## Demarrage
 
-### Prérequis
-- Docker & Docker Compose
-- Python 3.12+
-- Git
+Lancer toute la plateforme:
 
-### Lancer tous les services
 ```bash
 docker compose up -d --build
 ```
 
-### Lancer un service spécifique (dev)
+Verifier la configuration Docker Compose:
+
 ```bash
-cd api/log-service
-pip install -r requirements.txt
-cp .env.example .env
-uvicorn main:app --reload --port 8005
+docker compose config
 ```
 
-### Exécuter les tests
-```bash
-cd api/log-service
-pytest tests/ -v --cov=domain
-```
+## Booking service
 
-## 📚 Documentation API
+Le booking-service implemente l'architecture hexagonale complete.
+Il gere:
+- la creation de reservation
+- la verification des conflits temporels
+- la verification de disponibilite avec inventory-service
+- la saga reservation + paiement
+- les audit logs, system logs et evenements
 
-Chaque service expose sa documentation Swagger :
-- Auth : http://localhost:8001/docs
-- Inventory : http://localhost:8002/docs
-- Booking : http://localhost:8003/docs
-- Payment : http://localhost:8004/docs
-- **Log** : http://localhost:8005/docs
+Patterns utilises:
+- Repository
+- Strategy
+- Specification
+- Saga
 
-## 🔄 CI/CD
+Observabilite:
+- health check
+- logs structures
+- correlation id via `X-Correlation-ID`
 
-Le pipeline GitHub Actions (`.github/workflows/ci-cd.yml`) exécute :
-1. **Lint** → flake8 (style), mypy (types)
-2. **Test** → pytest avec couverture de code
-3. **Build** → Images Docker (GitHub Container Registry)
-4. **Deploy** → Staging (develop) / Production (main) avec Blue/Green
+Tests booking:
+- unitaires domaine
+- integration repository
+- contrats interservices
+- routes et schemas
 
-## 🔗 Communication inter-services
+## CI/CD
 
-- **REST API** : communication synchrone entre services
-- **X-Correlation-ID** : header HTTP propagé pour traçabilité
-- **Log Service** : centralisation des logs via `POST /api/v1/system-logs`
-- **Health Checks** : `GET /api/v1/health` sur chaque service
+Le workflow GitHub Actions se trouve dans `.github/workflows/ci-cd.yml`.
+Il lance le lint, les tests, le build Docker et prepare le deploiement staging / production.
 
-## 📊 Modèle de Données
+## Remarques
 
-### Enums
-- `ResourceType` : HOTEL_ROOM, RESTAURANT_TABLE, VENUE
-- `BookingStatus` : PENDING, CONFIRMED, CANCELLED
-- `PaymentStatus` : PENDING, PAID, FAILED
-
-### Entités principales
-- `User`, `Resource`, `Booking`, `Payment`, `AvailabilitySlot`
-- `SystemLog`, `AuditLog` (log-service)
-
-## 🌿 Branches Git
-
-- `main` — Production stable
-- `develop` — Intégration des features
-- `feature/rx1-authentification` — Auth (Dania)
-- `feature/rx5-log-service` — Log + CI/CD (El Nadje)
+- inventory-service et payment-service sont integres via HTTP.
+- Les logs d'acces HTTP sont structures localement.
+- Les logs metier et techniques du booking-service sont envoyes vers log-service.
