@@ -76,11 +76,35 @@ jobs:
     name: ✅ Tests — ${{ matrix.service }}
     runs-on: ubuntu-latest
     needs: lint
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_DB: postgres
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres -d postgres"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
     if: always()  # Exécuter même si le lint a des warnings
     strategy:
       fail-fast: false
       matrix:
-        service: [log-service, auth-service, booking-service, payment-service, inventory-service]
+        include:
+          - service: log-service
+            database_url: postgresql+asyncpg://postgres:postgres@localhost:5432/postgres
+          - service: auth-service
+            database_url: postgresql+asyncpg://postgres:postgres@localhost:5432/postgres
+          - service: booking-service
+            database_url: postgresql+asyncpg://postgres:postgres@localhost:5432/postgres
+          - service: payment-service
+            database_url: postgresql+asyncpg://postgres:postgres@localhost:5432/postgres
+          - service: inventory-service
+            database_url: postgresql+asyncpg://postgres:postgres@localhost:5432/postgres
 
     steps:
       - name: 📥 Checkout code
@@ -95,14 +119,14 @@ jobs:
         run: |
           pip install --upgrade pip
           pip install -r api/${{ matrix.service }}/requirements.txt
-          pip install aiosqlite
 
       - name: ✅ Run tests with coverage
         run: |
           cd api/${{ matrix.service }}
           python -m pytest tests/ -v --cov=. --cov-report=xml:coverage.xml --cov-report=term-missing
         env:
-          DATABASE_URL: sqlite+aiosqlite:///./test.db
+          DATABASE_URL: ${{ matrix.database_url }}
+          INVENTORY_TEST_DATABASE_URL: ${{ matrix.database_url }}
           LOG_LEVEL: DEBUG
           LOG_FORMAT: console
           LOG_SERVICE_URL: http://localhost:8005
