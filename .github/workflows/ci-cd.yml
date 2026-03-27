@@ -103,8 +103,6 @@ jobs:
             database_url: postgresql+asyncpg://postgres:postgres@localhost:5432/postgres
           - service: payment-service
             database_url: postgresql+asyncpg://postgres:postgres@localhost:5432/postgres
-          - service: inventory-service
-            database_url: postgresql+asyncpg://postgres:postgres@localhost:5432/postgres
 
     steps:
       - name: 📥 Checkout code
