@@ -78,8 +78,9 @@ jobs:
     needs: lint
     if: always()  # Exécuter même si le lint a des warnings
     strategy:
+      fail-fast: false
       matrix:
-        service: [log-service]  # Ajouter les autres services quand ils auront des tests
+        service: [log-service, auth-service, booking-service, payment-service, inventory-service]
 
     steps:
       - name: 📥 Checkout code
@@ -98,10 +99,17 @@ jobs:
       - name: ✅ Run tests with coverage
         run: |
           cd api/${{ matrix.service }}
-          python -m pytest tests/ -v --cov=domain --cov=adapters --cov-report=xml --cov-report=term-missing
+          python -m pytest tests/ -v --cov=. --cov-report=xml:coverage.xml --cov-report=term-missing
         env:
           DATABASE_URL: sqlite+aiosqlite:///./test.db
           LOG_LEVEL: DEBUG
+          LOG_FORMAT: console
+          LOG_SERVICE_URL: http://localhost:8005
+          PAYMENT_SERVICE_URL: http://localhost:8004
+          INVENTORY_SERVICE_URL: http://localhost:8002
+          JWT_SECRET_KEY: test-secret-key
+          JWT_ALGORITHM: HS256
+          SERVICE_NAME: ${{ matrix.service }}
 
       - name: 📊 Upload coverage report
         if: always()
