@@ -1,0 +1,73 @@
+version: '3.8'
+
+services:
+  frontend:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    ports:
+      - "3000:80"
+    environment:
+      - NODE_ENV=production
+    restart: unless-stopped
+    container_name: reservation-frontend
+
+  # Backend services (example structure - adjust based on your Python services)
+  auth-service:
+    build:
+      context: ./api/auth-service
+      dockerfile: Dockerfile
+    ports:
+      - "8001:8000"
+    environment:
+      - DATABASE_URL=${DATABASE_URL}
+    restart: unless-stopped
+    container_name: auth-service
+
+  booking-service:
+    build:
+      context: ./api/booking-service
+      dockerfile: Dockerfile
+    ports:
+      - "8002:8000"
+    environment:
+      - DATABASE_URL=${DATABASE_URL}
+    restart: unless-stopped
+    container_name: booking-service
+
+  inventory-service:
+    build:
+      context: ./api/inventory-service
+      dockerfile: Dockerfile
+    ports:
+      - "8003:8000"
+    environment:
+      - DATABASE_URL=${DATABASE_URL}
+    restart: unless-stopped
+    container_name: inventory-service
+
+  payment-service:
+    build:
+      context: ./api/payment-service
+      dockerfile: Dockerfile
+    ports:
+      - "8004:8000"
+    environment:
+      - DATABASE_URL=${DATABASE_URL}
+    restart: unless-stopped
+    container_name: payment-service
+
+  log-service:
+    build:
+      context: ./api/log-service
+      dockerfile: Dockerfile
+    ports:
+      - "8005:8000"
+    environment:
+      - DATABASE_URL=${DATABASE_URL}
+    restart: unless-stopped
+    container_name: log-service
+
+networks:
+  default:
+    name: reservation-network
